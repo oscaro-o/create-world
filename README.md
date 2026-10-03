@@ -112,13 +112,64 @@ NODE_PATH=$NM $NODE _build/play.js hans b narrow     # 简体，手机竖屏世�
 
 ## 部署
 
-新子域 **`createworld.trilumi.xyz` 目前还不存在**（DNS 没有，服务器没有 vhost）。
-先建子域，然后：
+仓库：**https://github.com/oscaro-o/create-world**（public，与其它游戏一致）
+
+### 已完成（2026-10-03）
+
+- 服务器上已建 vhost：`/home/createworld.trilumi.xyz/public_html`（用户 `creat2023`）
+- 已注册进 `httpd_config.conf`：**三个 listener 都有 map**（`Default` / `SSL` / `SSL IPv6`）
+  + 一个 `virtualHost` block
+- 文件已推上去（index.html / sw.js / manifest / icons / beacon），
+  用 Host 头在本机验证：`/` 200、`/sw.js` 200、`/manifest.webmanifest` 200、
+  `/icons/*` 200、`/_e/p.gif` 200；线上 index.html 字节数与本地构建一致
+
+> ⚠️ **CyberPanel 的 `createWebsite` 只写 `Default` listener 的 map 行。**
+> 结果是一个 http 完全正常、https 永远连不上的站点 —— 而且报错看起来像证书坏了，
+> 其实不是：SSL listener 没有 map，请求根本到不了 vhost。
+> 用 `bash brand/check-vhost-maps.sh <domain>` 查，`--fix` 补。
+
+### 还差一步（只有你能做）
+
+**DNS 是外部的**（NS = `dns-parking.com`，Hostinger hPanel），SSH 改不了。
+在 hPanel 的 `trilumi.xyz` DNS 区加一条 A 记录：
+
+```
+类型 A    名称 createworld    值 212.85.27.147    TTL 默认
+```
+
+加完验证：
+
+```bash
+dig +short createworld.trilumi.xyz      # 必须返回 212.85.27.147
+```
+
+### DNS 生效后（一条命令）
+
+SSL 走仓库里已有的工作流，它会签证书、把 `vhssl` block 追加进 vhost.conf、
+重启 lsws：
+
+```bash
+gh workflow run "TLS certificate" --repo NekoBite/TrilumiWebsite \
+  -f domain=createworld.trilumi.xyz \
+  -f extra_domains= \
+  -f mode=issue \
+  -f webroot=/usr/local/lsws/Example/html
+```
+
+然后从仓库根目录跑最终验证（HTTP 200 + beacon + 线上 sw.js VERSION）：
 
 ```bash
 cd "C:/Users/oscar/WorkBuddy AI/2026-09-19-21-22-00"
 bash brand/deploy-family.sh createworld
 ```
 
-`deploy-family.sh` 里已经有 `createworld` 这一行；它会推 index.html、sw.js、
-manifest 和整套 icons，然后 verify HTTP 200 + beacon + 线上 VERSION。
+### 之后每次发版
+
+```bash
+cd "C:/Users/oscar/WorkBuddy AI/2026-09-19-21-22-00/_gh/create-world"
+bash _build/assemble.sh
+# bump sw.js 的 VERSION
+cd .. && cd .. && bash brand/deploy-family.sh createworld
+```
+
+改完 `index.html` **一定要 bump `sw.js` 的 VERSION**，否则老访客拿到旧缓存。
