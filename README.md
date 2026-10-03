@@ -112,56 +112,113 @@ NODE_PATH=$NM $NODE _build/play.js hans b narrow     # 简体，手机竖屏世�
 
 ## 部署
 
+**线上：<https://createworld.trilumi.xyz>**（2026-10-03 上线）
 仓库：**https://github.com/oscaro-o/create-world**（public，与其它游戏一致）
 
-### 已完成（2026-10-03）
+一次完整的 `bash brand/deploy-family.sh createworld`：
 
-- 服务器上已建 vhost：`/home/createworld.trilumi.xyz/public_html`（用户 `creat2023`）
-- 已注册进 `httpd_config.conf`：**三个 listener 都有 map**（`Default` / `SSL` / `SSL IPv6`）
-  + 一个 `virtualHost` block
-- 文件已推上去（index.html / sw.js / manifest / icons / beacon），
-  用 Host 头在本机验证：`/` 200、`/sw.js` 200、`/manifest.webmanifest` 200、
-  `/icons/*` 200、`/_e/p.gif` 200；线上 index.html 字节数与本地构建一致
+```
+  ok    createworld                                200  107613 bytes
+  ok    beacon @ createworld                       200  42 bytes
+  ok    createworld (sw)                           v1
+  ok    academy (hub)                              200  54034 bytes
+all checks passed.
+```
+
+### 建新子域的完整顺序（下次照这个走，顺序不能换）
+
+**1 · 建 vhost**
+
+```bash
+ssh hetu 'cyberpanel createWebsite --package Default --owner admin \
+  --domainName createworld.trilumi.xyz --email <邮箱> --php 8.1'
+```
+
+**2 · 补 SSL listener 的 map**
+
+```bash
+bash brand/check-vhost-maps.sh createworld.trilumi.xyz --fix
+```
 
 > ⚠️ **CyberPanel 的 `createWebsite` 只写 `Default` listener 的 map 行。**
-> 结果是一个 http 完全正常、https 永远连不上的站点 —— 而且报错看起来像证书坏了，
-> 其实不是：SSL listener 没有 map，请求根本到不了 vhost。
-> 用 `bash brand/check-vhost-maps.sh <domain>` 查，`--fix` 补。
+> 一个子域要在 `httpd_config.conf` 里**三个 listener 都 map**（`Default` /
+> `SSL` / `SSL IPv6`）。只写第一个的结果是 http 完全正常、https 永远连不上 ——
+> **而且报错看起来像证书坏了，其实不是**：SSL listener 没有 map，请求根本到不了
+> vhost。2026-10-03 就是这么卡住的。
 
-### 还差一步（只有你能做）
-
-**DNS 是外部的**（NS = `dns-parking.com`，Hostinger hPanel），SSH 改不了。
-在 hPanel 的 `trilumi.xyz` DNS 区加一条 A 记录：
+**3 · 加 DNS A 记录**（Hostinger hPanel，NS = `dns-parking.com`，SSH 改不了）
 
 ```
 类型 A    名称 createworld    值 212.85.27.147    TTL 默认
 ```
 
-加完验证：
-
 ```bash
-dig +short createworld.trilumi.xyz      # 必须返回 212.85.27.147
+nslookup -type=A createworld.trilumi.xyz 8.8.8.8   # 必须返回 212.85.27.147
 ```
 
-### DNS 生效后（一条命令）
-
-SSL 走仓库里已有的工作流，它会签证书、把 `vhssl` block 追加进 vhost.conf、
-重启 lsws：
+**4 · 签证书**
 
 ```bash
-gh workflow run "TLS certificate" --repo NekoBite/TrilumiWebsite \
+MSYS_NO_PATHCONV=1 gh workflow run "TLS certificate" --repo NekoBite/TrilumiWebsite \
   -f domain=createworld.trilumi.xyz \
-  -f extra_domains= \
   -f mode=issue \
   -f webroot=/usr/local/lsws/Example/html
 ```
 
-然后从仓库根目录跑最终验证（HTTP 200 + beacon + 线上 sw.js VERSION）：
+> ⚠️ **`MSYS_NO_PATHCONV=1` 不能省。** Git Bash 会把 `/usr/local/...` 这种以斜杠
+> 开头的参数**转换成 Windows 路径**再交给 `gh`。2026-10-03 第一次跑就因此失败：
+> 服务器收到的是
+> `C:/Users/oscar/.workbuddy-ai/binaries/PortableGit/versions/1.2.0/usr/local/lsws/Example/html`，
+> 于是 `[ -d "$WEBROOT" ]` 直接挂掉。好在它挂在 `acme.sh` **之前**，没浪费
+> Let's Encrypt 的签发额度。
+
+> ⚠️ **`extra_domains` 传空是无效的，只能接受它的默认值 `www.trilumi.xyz`。**
+> GitHub Actions 把「空字符串输入」当成「没提供」，于是回落到默认值。`-f
+> extra_domains=` 和 `gh api -f 'inputs[extra_domains]='` 都试过，两种都会让
+> 工作流收到 `www.trilumi.xyz`（日志里会打
+> `Certificate will cover: createworld.trilumi.xyz www.trilumi.xyz`）。
+> 结果：**这张证书额外覆盖了 `www.trilumi.xyz`**。
+> 这是**无害的**——www 有自己的 vhost 和自己的证书（`CN=trilumi.xyz`），
+> 这张证书不会被用到 www 上；续期也没问题，因为所有 vhost 的
+> `/.well-known/acme-challenge` 都指向同一个共享目录
+> `/usr/local/lsws/Example/html/.well-known/acme-challenge`（已实测 www 和 apex
+> 都返回 200）。**所以就这样留着，不要去重签** —— 为了一行 SAN 去动一张正在
+> 提供服务的生产证书，不划算。
+
+**5 · 最终验证**
 
 ```bash
 cd "C:/Users/oscar/WorkBuddy AI/2026-09-19-21-22-00"
 bash brand/deploy-family.sh createworld
+bash brand/check-family.sh          # 7 个游戏 local == blob == 线上
 ```
+
+### 签名时遇到的两个坑（2026-10-03 实测）
+
+- **`acme.sh --install-cert` 的 `--reloadcmd "systemctl restart lsws"` 报了
+  `Job for lshttpd.service canceled.`**，于是工作流退出码 1。
+  但证书**已经签好也装好了**（`/etc/letsencrypt/live/createworld.trilumi.xyz/`），
+  服务也一直是 active —— 只是脚本在追加 `vhssl` block **之前**就退出了。
+  手动补上即可（见下），或者直接重跑工作流。
+- 因为上一条，`vhssl` block 是**手工追加**的，内容与工作流一致：
+
+  ```
+  vhssl  {
+    keyFile                 /etc/letsencrypt/live/createworld.trilumi.xyz/privkey.pem
+    certFile                /etc/letsencrypt/live/createworld.trilumi.xyz/fullchain.pem
+    certChain               1
+    sslProtocol             24
+    enableECDHE             1
+    renegProtection         1
+    sslSessionCache         1
+    enableSpdy              15
+    enableStapling          1
+    ocspRespMaxAge          86400
+  }
+  ```
+
+  追加前先 `cp -a vhost.conf vhost.conf.bak-$(date +%s)`。改完 `systemctl restart
+  lsws`，然后**务必回头确认其它站点还活着** —— lsws 挂了是全家一起挂。
 
 ### 之后每次发版
 
@@ -173,3 +230,6 @@ cd .. && cd .. && bash brand/deploy-family.sh createworld
 ```
 
 改完 `index.html` **一定要 bump `sw.js` 的 VERSION**，否则老访客拿到旧缓存。
+（`deploy-family.sh` 现在会真的校验线上 VERSION —— 之前它用的模式是
+`const VERSION`，而本仓库写的是 `var VERSION`，所以那条断言一直静默通过、
+什么都没查。2026-10-03 已修。）
