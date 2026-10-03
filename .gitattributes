@@ -1,5 +1,7 @@
 # Same rule as brand/: this ships to a Linux server, and a CRLF in a shell
 # script is a syntax error waiting to happen. The build parts are all text.
+* text=auto eol=lf
+
 *.sh   text eol=lf
 *.py   text eol=lf
 *.js   text eol=lf
