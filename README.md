@@ -53,7 +53,8 @@ _build/                 ← 源码分片 + 组装 + 测试（不进部署）
   game4.js   七日流程、命名面板、立法面板
   game5.js   安息、入世、结局、分享卡、启动
   assemble.sh      组装 index.html
-  play.js          真浏览器全流程测试
+  play.js          真浏览器全流程测试（跑 file://，把整局打完）
+  live.js          线上冒烟测试（跑 https://，查 SW / manifest / 点一下能开局）
   mobile.js mob2.js  手机端布局检查
 ```
 
@@ -86,6 +87,19 @@ NODE_PATH=$NM $NODE _build/play.js hans b narrow     # 简体，手机竖屏世�
 - 第七日结束时 **1144/1144 格无虚空**
 - 入世时 `occupantAt()` 对**每一格**都返回非空
 - 分享卡渲染到 1080 宽，并引用玩家自己写下的法条
+
+`play.js` 从 `file://` 跑，所以它测不到部署那一层 —— 没有 HTTP、没有 service
+worker、没有 TLS。而这三样恰恰是「200 也照样坏」的地方。线上那一层归 `live.js`：
+
+```bash
+NODE_PATH=$NM $NODE _build/live.js                   # 默认 https://createworld.trilumi.xyz/
+NODE_PATH=$NM $NODE _build/live.js https://其它域名/   # 也可传 URL
+```
+
+它断言：页面 200、canvas 被脚本量出尺寸、**service worker 注册成功**（这是
+`file://` 永远做不到的检查）、manifest 能解析且图标能取到、开场画面渲染出来、
+**点一下真的能开局**（`stage` 前进且调色板有笔刷）、控制台零报错、零失败请求。
+`live.js` 在改动线上任何东西之后都要跑一次。
 
 ---
 
@@ -234,10 +248,21 @@ bash brand/check-family.sh          # 7 个游戏 local == blob == 线上
 cd "C:/Users/oscar/WorkBuddy AI/2026-09-19-21-22-00/_gh/create-world"
 bash _build/assemble.sh
 # bump sw.js 的 VERSION
-cd .. && cd .. && bash brand/deploy-family.sh createworld
+cd .. && cd ..
+bash brand/deploy-family.sh createworld     # 部署 + 校验线上字节数 / VERSION
+bash brand/check-family.sh                  # 7 个游戏 local == blob == 线上
+NODE_PATH=C:/Users/oscar/.workbuddy-ai/binaries/node/workspace/node_modules \
+  /c/Users/oscar/.workbuddy-ai/binaries/node/versions/22.22.2-3/node.exe \
+  _gh/create-world/_build/live.js           # 线上真浏览器冒烟（SW / manifest / 能开局）
 ```
 
 改完 `index.html` **一定要 bump `sw.js` 的 VERSION**，否则老访客拿到旧缓存。
 （`deploy-family.sh` 现在会真的校验线上 VERSION —— 之前它用的模式是
 `const VERSION`，而本仓库写的是 `var VERSION`，所以那条断言一直静默通过、
 什么都没查。2026-10-03 已修。）
+
+> **为什么部署完还要再跑两个脚本。** `deploy-family.sh` 只证明「服务器返回了
+> 正确字节数」——它读不出 line ending、也不会执行页面。`check-family.sh` 补的是
+> 前者（2026-10-03 就是它发现 427 字节的 CRLF 漂移），`live.js` 补的是后者
+> （SW 注册、manifest、点一下能不能开局）。三个脚本各查一层，缺一个就会留一个
+> 盲区 —— 这一轮里正好每个盲区都真的出过事。
