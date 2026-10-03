@@ -199,8 +199,19 @@ bash brand/check-family.sh          # 7 个游戏 local == blob == 线上
   `Job for lshttpd.service canceled.`**，于是工作流退出码 1。
   但证书**已经签好也装好了**（`/etc/letsencrypt/live/createworld.trilumi.xyz/`），
   服务也一直是 active —— 只是脚本在追加 `vhssl` block **之前**就退出了。
-  手动补上即可（见下），或者直接重跑工作流。
-- 因为上一条，`vhssl` block 是**手工追加**的，内容与工作流一致：
+  症状极具误导性：工作流红叉、http 正常，但 https 还是默认证书
+  （`CN=<服务器名>`），因为 vhost 里根本没有 `vhssl`。
+- **修法（一条命令）：**
+
+  ```bash
+  bash brand/wire-vhssl.sh createworld.trilumi.xyz
+  ```
+
+  它会备份 vhost.conf、已有 `vhssl` 就跳过、照抄 `artofwar.trilumi.xyz` 的 block、
+  重启 lsws，最后**逐个 curl 全家十个站点**确认都还活着 —— lsws 是七个游戏 +
+  academy 共用的，重启从来不只是这一个站点的事。
+- 这次 `vhssl` block 就是这样补上去的。它长这样（与工作流写入的完全一致，
+  也与 `artofwar.trilumi.xyz` 的那段一致，只换了域名）：
 
   ```
   vhssl  {
@@ -216,9 +227,6 @@ bash brand/check-family.sh          # 7 个游戏 local == blob == 线上
     ocspRespMaxAge          86400
   }
   ```
-
-  追加前先 `cp -a vhost.conf vhost.conf.bak-$(date +%s)`。改完 `systemctl restart
-  lsws`，然后**务必回头确认其它站点还活着** —— lsws 挂了是全家一起挂。
 
 ### 之后每次发版
 
