@@ -1,0 +1,2641 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>造世 · 你親手創造世界，可這世界沒有你位置</title>
+<meta name="description" content="An interactive creation game in seven days. You build a world, name its creatures, give it laws — and then look for your own place in it. 繁體 · 简体 · English.">
+<meta name="theme-color" content="#08090c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="造世">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+/* ==========================================================================
+   造世 · THE MAKER
+   --------------------------------------------------------------------------
+   A dark page, on purpose. Every other game in the family sits on warm paper;
+   this one starts in a void and the world is the only lit thing on screen.
+   The light in the middle of the page is the point — so the chrome around it
+   has to get out of the way and stay nearly black.
+
+   The brand mark is not translated and not recoloured as a system: the badge
+   keeps its blue, the wordmark goes white because #004AAD on #08090c is a
+   smudge. Geometry is untouched — see tribrand.js.
+   ========================================================================== */
+:root{
+  --bg:#08090c; --bg2:#0d0f14; --panel:#11141a; --panel2:#161a22;
+  --line:#232833; --line2:#313846;
+  --ink:#e9e7e1; --ink2:#a5a29a; --ink3:#6c6a64;
+  --gold:#e0b76a; --gold2:#f2d79b;
+  --blue:#004AAD; --blue-l:#5b9bff;
+  --water:#2a6d94; --earth:#8a6a45; --plant:#3f8a58; --blood:#b8433a;
+  --serif:"Songti SC","Songti TC","Source Han Serif SC","Source Han Serif TC",
+          "Noto Serif CJK SC","Noto Serif CJK TC","SimSun","PMingLiU","STSong",
+          Georgia,"Times New Roman",serif;
+  --sans:"Segoe UI","Helvetica Neue",Helvetica,"Microsoft YaHei","PingFang SC",
+         "Hiragino Sans GB",Arial,system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--serif);
+  font-size:16px; line-height:1.85; letter-spacing:.01em; min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 50% 34%, rgba(224,183,106,.055), transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(0,74,173,.10), transparent 70%);
+}
+body.en{letter-spacing:0;line-height:1.7}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 56px}
+
+/* ---------------------------------------------------------------- header */
+header.top{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);padding-bottom:11px;margin-bottom:16px;
+}
+header.top h1{font-size:19px;margin:0;font-weight:600;letter-spacing:.22em;color:var(--ink)}
+body.en header.top h1{letter-spacing:.14em}
+header.top .sub{color:var(--ink3);font-size:12.5px;letter-spacing:.06em}
+header.top .spacer{display:none}
+.langsw{display:inline-flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+.langsw button{font-family:var(--serif);font-size:12px;letter-spacing:.1em;background:transparent;
+  border:none;border-right:1px solid var(--line2);color:var(--ink3);padding:4px 11px;
+  cursor:pointer;transition:.18s;line-height:1.5}
+.langsw button:last-child{border-right:none}
+.langsw button:hover{color:var(--gold)}
+.langsw button.on{background:var(--gold);color:#14110a}
+/* the share button lives in the header, centred, visible from the first paint.
+   It used to be hidden until the player finished, which meant it was not there. */
+.trishbtn{
+  display:inline-flex;align-items:center;gap:7px;margin-left:auto;margin-right:auto;
+  padding:5px 14px;border-radius:3px;border:1px solid var(--line2);background:transparent;
+  color:var(--ink2);font-family:var(--serif);font-size:12.5px;letter-spacing:.1em;
+  cursor:pointer;transition:.18s;white-space:nowrap;
+}
+.trishbtn:hover,.trishbtn:focus-visible{border-color:var(--blue-l);color:var(--blue-l)}
+.trishbtn svg{display:block;flex:none;width:13px;height:13px;fill:currentColor}
+.installbtn{
+  padding:5px 12px;border-radius:3px;border:1px solid var(--line2);background:transparent;
+  color:var(--ink3);font-family:var(--serif);font-size:12.5px;letter-spacing:.1em;cursor:pointer;
+}
+.installbtn[hidden]{display:none}
+
+/* ------------------------------------------------------------- day strip */
+.daybar{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.daybar div{
+  flex:1;padding:6px 4px;font-size:11px;letter-spacing:.06em;color:var(--ink3);
+  text-align:center;background:var(--panel);border-right:1px solid var(--line);
+  transition:.35s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.daybar div:last-child{border-right:none}
+.daybar div.on{background:var(--gold);color:#14110a;font-weight:600}
+.daybar div.done{color:var(--ink2);background:var(--panel2)}
+
+/* ---------------------------------------------------------------- frame */
+.frame{
+  position:relative;border:1px solid var(--line2);border-radius:4px;overflow:hidden;
+  background:#000;line-height:0;
+  box-shadow:0 0 0 1px rgba(224,183,106,.05), 0 18px 60px rgba(0,0,0,.65),
+             inset 0 0 90px rgba(0,0,0,.5);
+}
+.frame.zoom canvas{transition:transform 1.15s cubic-bezier(.5,0,.2,1)}
+#cv{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.frame.locked #cv{cursor:default}
+
+/* text laid over the world — the narration never leaves the frame */
+.overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;padding:26px;text-align:center;pointer-events:none;
+  background:radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0,0,0,.72), rgba(0,0,0,.42));
+  opacity:0;transition:opacity .7s ease;line-height:1.9;
+}
+.overlay.show{opacity:1}
+.overlay .big{font-size:clamp(19px,3.4vw,30px);font-weight:600;letter-spacing:.14em;color:var(--gold2);
+  text-shadow:0 2px 24px rgba(0,0,0,.9)}
+body.en .overlay .big{letter-spacing:.03em}
+.overlay .mid{font-size:clamp(14px,2vw,17px);color:var(--ink);max-width:32em;
+  text-shadow:0 2px 18px rgba(0,0,0,.95)}
+.overlay .sm{font-size:13px;color:var(--ink3);max-width:34em}
+.overlay .hl{color:var(--gold);font-weight:600}
+.overlay .quote{font-size:clamp(15px,2.2vw,19px);color:var(--gold2);letter-spacing:.08em}
+/* the last act: the world stays lit, the words sit under it. The scene only
+   works if you can see the thing you are not allowed into. */
+.overlay.soft{
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.16) 42%,
+             rgba(0,0,0,.80) 78%,rgba(0,0,0,.92) 100%);
+  justify-content:flex-end;padding-bottom:clamp(20px,4vw,42px);
+}
+.overlay.soft .big{font-size:clamp(20px,3.8vw,34px)}
+</style>
+<style>
+/* -------------------------------------------------------------- palette */
+.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-height:42px;align-items:center}
+.el{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 9px;border-radius:3px;
+  border:1px solid var(--line2);background:var(--panel);color:var(--ink2);
+  font-family:var(--serif);font-size:13.5px;letter-spacing:.08em;cursor:pointer;transition:.18s;
+}
+.el:hover{border-color:var(--line2);background:var(--panel2);color:var(--ink)}
+.el.on{border-color:var(--gold);color:var(--ink);background:rgba(224,183,106,.10)}
+.el .sw{width:13px;height:13px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+.el .n{white-space:nowrap}
+.el .c{font-size:11px;color:var(--ink3);letter-spacing:0}
+.el.on .c{color:var(--gold)}
+.el[disabled]{opacity:.34;cursor:not-allowed}
+.palette .hint{font-size:12.5px;color:var(--ink3);letter-spacing:.04em}
+
+/* ------------------------------------------------------- the spoken line */
+.say{
+  margin-top:12px;min-height:46px;padding:11px 15px;border-radius:3px;
+  border:1px solid var(--line);background:var(--panel);
+  font-size:15px;color:var(--ink2);line-height:1.75;transition:.3s;
+}
+.say b{color:var(--gold);font-weight:600}
+.say .dim{color:var(--ink3);font-size:13.5px}
+.say .meter{display:block;margin-top:7px;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+.say .meter i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
+
+/* ------------------------------------------------------------- foot row */
+.actrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.btn{
+  font-family:var(--serif);font-size:14.5px;letter-spacing:.1em;padding:10px 22px;border-radius:3px;
+  border:1px solid var(--gold);background:var(--gold);color:#14110a;cursor:pointer;font-weight:600;
+  transition:.18s;
+}
+.btn:hover{background:var(--gold2);border-color:var(--gold2)}
+.btn.ghost{background:transparent;color:var(--ink2);border-color:var(--line2);font-weight:400}
+.btn.ghost:hover{border-color:var(--ink3);color:var(--ink);background:var(--panel)}
+.btn[disabled]{opacity:.3;cursor:not-allowed}
+.btn.danger{background:transparent;border-color:var(--blood);color:var(--blood)}
+.btn.danger:hover{background:var(--blood);color:#fff;border-color:var(--blood)}
+
+/* --------------------------------------------------------------- panels */
+.panel{
+  position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(4,5,7,.86);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+.panel.show{opacity:1;pointer-events:auto}
+.panel .box{
+  width:100%;max-width:640px;max-height:92vh;overflow:auto;background:var(--bg2);
+  border:1px solid var(--line2);border-radius:5px;padding:26px 26px 20px;
+  box-shadow:0 30px 90px rgba(0,0,0,.8);
+}
+.panel h3{margin:0 0 6px;font-size:20px;font-weight:600;letter-spacing:.16em;color:var(--gold2)}
+body.en .panel h3{letter-spacing:.04em}
+.panel .lede{margin:0 0 16px;font-size:14.5px;color:var(--ink2);line-height:1.8}
+.panel input[type=text]{
+  width:100%;padding:13px 15px;border-radius:3px;border:1px solid var(--line2);
+  background:#05060a;color:var(--ink);font-family:var(--serif);font-size:19px;
+  letter-spacing:.08em;outline:none;transition:.18s;
+}
+.panel input[type=text]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,183,106,.10)}
+.panel .row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.panel .note{margin-top:10px;font-size:12.5px;color:var(--ink3);min-height:16px}
+
+.laws{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.law{
+  text-align:left;padding:13px 16px;border-radius:3px;border:1px solid var(--line2);
+  background:var(--panel);color:var(--ink2);font-family:var(--serif);font-size:15.5px;
+  line-height:1.7;cursor:pointer;transition:.18s;letter-spacing:.02em;
+}
+.law:hover{border-color:var(--ink3);color:var(--ink);background:var(--panel2)}
+.law.on{border-color:var(--gold);background:rgba(224,183,106,.09);color:var(--gold2)}
+.law .idx{color:var(--ink3);margin-right:9px;font-size:13px}
+.law.on .idx{color:var(--gold)}
+.law .gloss{display:block;margin-top:3px;font-size:12.5px;color:var(--ink3);letter-spacing:0}
+.law.on .gloss{color:rgba(242,215,155,.72)}
+
+/* ---------------------------------------------------------------- footer */
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);text-align:center}
+.tribrand{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  text-decoration:none;opacity:.62;transition:.25s}
+.tribrand:hover,.tribrand:focus-visible{opacity:1}
+.tribrand svg{display:block;flex:none;width:11px;height:11.7px;fill:var(--blue-l)}
+.tribrand .tbn{font-size:11px;font-weight:700;letter-spacing:.22em;color:#fff}
+.tribrand .tbu{font-size:11px;font-weight:400;letter-spacing:.02em;color:var(--ink3)}
+.tribrand .tbu::before{content:"·";margin:0 9px;color:var(--ink3)}
+#buildtag{display:block;margin-top:9px;font-size:10.5px;color:#3c3f47;letter-spacing:.1em}
+
+/* --------------------------------------------------------------- mobile */
+@media (max-width:700px){
+  header.top{gap:8px}
+  header.top h1{font-size:17px}
+  header.top .sub{display:none}
+  .langsw{margin-left:auto}
+}
+@media (max-width:430px){
+  /* the title takes the first line, so "centre" has to mean the second line */
+  header.top{display:grid;grid-template-columns:1fr;
+    align-items:center;gap:9px}
+  header.top h1{grid-column:1/-1;grid-row:1;text-align:center}
+  .trishbtn{grid-column:1/-1;grid-row:2;justify-self:center;margin:0}
+  .langsw{grid-column:1/-1;grid-row:3;justify-self:end;margin:0}
+  .daybar div{font-size:0;padding:9px 2px}
+  .daybar div::after{content:attr(data-d);font-size:11px}
+  .el{padding:7px 11px 7px 8px;font-size:12.5px}
+  .wrap{padding:14px 11px 40px}
+  .panel .box{padding:20px 17px 15px}
+  .overlay{padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="gtitle">造世</h1>
+    <span class="sub" id="subtitle"></span>
+    <button class="trishbtn" id="trishbtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 16.1a3 3 0 0 0-1.9.7l-6-3.5a3 3 0 0 0 0-2.6l6-3.5a3 3 0 1 0-1-2.2 3 3 0 0 0 .1.7l-6 3.5a3 3 0 1 0 0 4.6l6 3.5a3 3 0 1 0 2.8-1.2z"/></svg>
+      <span id="trishlabel"></span>
+    </button>
+    <span class="langsw" id="langsw">
+      <button type="button" data-l="hant">繁</button>
+      <button type="button" data-l="hans">简</button>
+      <button type="button" data-l="en">EN</button>
+    </span>
+    <button type="button" class="installbtn" id="installbtn" hidden></button>
+  </header>
+
+  <div class="daybar" id="daybar"></div>
+
+  <div class="frame" id="frame">
+    <canvas id="cv" width="880" height="528"></canvas>
+    <div class="overlay" id="overlay"></div>
+  </div>
+
+  <div class="palette" id="palette"></div>
+  <div class="say" id="say"></div>
+  <div class="actrow" id="actrow"></div>
+
+  <footer class="foot">
+    <a class="tribrand" href="https://academy.trilumi.xyz/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 100 106" aria-hidden="true" focusable="false"><polygon points="57,0 68.5,21 40,76 18,76"></polygon><polygon points="9,80 63,80 73,98 0,98"></polygon><polygon points="66,33 55,55 79,106 100,106"></polygon></svg>
+      <span class="tbn">TRILUMI</span>
+      <span class="tbu">academy.trilumi.xyz</span>
+    </a>
+    <span id="buildtag"></span>
+  </footer>
+</div>
+
+<div class="panel" id="panel"><div class="box" id="panelbox"></div></div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   TRILUMI — brand signature
+   --------------------------------------------------------------------------
+   The lockup is copied from the header of trilumi.xyz, which is the
+   authoritative source:
+
+     mark   three polygons in a 100 x 106 box, painted in one colour
+     word   "TRILUMI", uppercase, letter-spacing .22em
+
+   Both are redrawn by hand here for two reasons: a canvas share card and the
+   page itself must use the same geometry, and every game has to stay a single
+   file with no dependencies.
+
+   Nothing in this block is translated. A brand mark that changes with the
+   interface language is not a brand mark.
+   ========================================================================== */
+var TRILUMI = (function () {
+  var BLUE = '#004AAD';
+  var HREF = 'https://academy.trilumi.xyz/';
+  var SANS = '"Segoe UI","Helvetica Neue",Helvetica,"Microsoft YaHei",' +
+             '"PingFang SC","Hiragino Sans GB",Arial,sans-serif';
+
+  /* the three polygons, in the official 100 x 106 space */
+  var POLY = [
+    [[57, 0], [68.5, 21], [40, 76], [18, 76]],
+    [[9, 80], [63, 80], [73, 98], [0, 98]],
+    [[66, 33], [55, 55], [79, 106], [100, 106]]
+  ];
+
+  function path(c, x, y, h, color) {
+    var s = h / 106;
+    c.save();
+    c.translate(x, y);
+    c.scale(s, s);
+    c.fillStyle = color || BLUE;
+    c.beginPath();
+    for (var i = 0; i < 3; i++) {
+      var p = POLY[i];
+      c.moveTo(p[0][0], p[0][1]);
+      for (var j = 1; j < p.length; j++) c.lineTo(p[j][0], p[j][1]);
+      c.closePath();
+    }
+    c.fill();
+    c.restore();
+  }
+
+  function rr(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  /* The badge — the form that travels. A share card gets forwarded into chat
+     apps and shown as a thumbnail a few hundred pixels wide, so the mark has
+     to survive being scaled down and re-compressed. A solid blue square with
+     white cut-outs does; a hairline of blue polygons does not. */
+  function badge(c, x, y, size) {
+    rr(c, x, y, size, size, size * 0.22);
+    c.fillStyle = BLUE;
+    c.fill();
+    var inner = size * 0.60;
+    path(c, x + (size - inner * 100 / 106) / 2, y + (size - inner) / 2, inner, '#fff');
+  }
+
+  /* "TRILUMI", uppercase, letterspaced. Canvas has no letter-spacing, so the
+     glyphs go down one at a time. Returns the advance width. */
+  function word(c, x, y, size, color, ls) {
+    ls = (ls == null) ? 0.22 : ls;
+    var sp = size * ls, tx = x, s = 'TRILUMI';
+    c.save();
+    c.font = '700 ' + size + 'px ' + SANS;
+    c.fillStyle = color || BLUE;
+    for (var i = 0; i < s.length; i++) {
+      c.fillText(s[i], tx, y);
+      tx += c.measureText(s[i]).width + sp;
+    }
+    c.restore();
+    return tx - sp - x;
+  }
+
+  function wordW(c, size, ls) {
+    ls = (ls == null) ? 0.22 : ls;
+    var w = 0, s = 'TRILUMI';
+    c.save();
+    c.font = '700 ' + size + 'px ' + SANS;
+    for (var i = 0; i < s.length; i++) w += c.measureText(s[i]).width + size * ls;
+    c.restore();
+    return w - size * ls;
+  }
+
+  /* The lockup on a share card: badge + wordmark on one line, the series
+     address under it. Returns the width used, so the caller can right-align
+     the game's own line against it without the two ever colliding. */
+  function stamp(c, x, y, opts) {
+    opts = opts || {};
+    var bs = opts.badge || 34;
+    var ws = opts.word || 19;
+    var gap = opts.gap || 15;
+    badge(c, x, y, bs);
+    var cy = y + bs / 2 + ws * 0.36;
+    var w = bs + gap + word(c, x + bs + gap, cy, ws, opts.color || BLUE);
+    if (opts.url !== false) {
+      c.save();
+      c.font = '400 ' + Math.round(ws * 0.82) + 'px ' + SANS;
+      c.fillStyle = opts.muted || '#8c8478';
+      c.fillText(opts.addr || 'academy.trilumi.xyz', x, y + bs + ws * 1.16);
+      c.restore();
+    }
+    return w;
+  }
+
+  return {
+    BLUE: BLUE, HREF: HREF, SANS: SANS,
+    path: path, badge: badge, word: word, wordW: wordW, rr: rr, stamp: stamp
+  };
+})();
+/* ==========================================================================
+   TRICARD — one share-card renderer for the whole family
+   --------------------------------------------------------------------------
+   The first two games each grew their own card code. That does not scale to
+   four, and it guarantees the four cards drift apart. This is the single
+   renderer: a game hands over a plain description of what is on its card and
+   gets a canvas back.
+
+   Depends on TRILUMI for the brand stamp. Everything else is self-contained.
+
+     TRICARD.draw({
+       paper, ink, accent, muted, line, panel, panelInk,   // palette
+       serif, sans,                                        // font stacks
+       kicker,                                             // small caps line
+       title, body,                                        // wrapped + fitted
+       stats: [{k, v}],                                    // 2-4 inline
+       quote,                                              // dark panel
+       footer,                                             // game's own line
+       mark: function (c, x, y, h) {}                      // optional game mark
+     })
+
+   Returns a canvas. The caller downloads it.
+
+   Layout rule: the card is a fixed 1080 wide and grows downwards. Every block
+   is measured before anything is painted, so the canvas is created at the
+   height the content actually needs — a game cannot overflow by handing over
+   a long string. Titles WRAP rather than shrink; a long title set small to
+   stay on one line reads as a mistake, a long title set on three lines reads
+   as a title.
+   ========================================================================== */
+var TRICARD = (function () {
+  var W = 1080;
+  var PAD = 96;
+  var MAXW = W - PAD * 2;
+
+  /* closing punctuation must not be pushed to the start of a line */
+  var NO_START = '。，、；：？！）》」』】”’…·.,;:?!)]}';
+
+  /* CJK glyphs break anywhere; Latin words stay whole */
+  function tokens(s) {
+    var out = [], buf = '';
+    for (var i = 0; i < s.length; i++) {
+      var ch = s[i];
+      if (/[\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]/.test(ch)) {
+        if (buf) { out.push(buf); buf = ''; }
+        out.push(ch);
+      } else if (ch === ' ' || ch === '\n') {
+        if (buf) { out.push(buf); buf = ''; }
+        out.push(ch);
+      } else {
+        buf += ch;
+      }
+    }
+    if (buf) out.push(buf);
+    return out;
+  }
+
+  function wrapLines(c, text, maxW) {
+    var tk = tokens(String(text || '')), lines = [], cur = '';
+    for (var i = 0; i < tk.length; i++) {
+      var t = tk[i];
+      if (t === '\n') { lines.push(cur); cur = ''; continue; }
+      var test = cur + t;
+      if (cur && c.measureText(test).width > maxW) {
+        /* never open a line with closing punctuation — pull it back down */
+        if (NO_START.indexOf(t) >= 0) {
+          lines.push(cur + t);
+          cur = '';
+          continue;
+        }
+        lines.push(cur);
+        cur = (t === ' ') ? '' : t;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  /* canvas has no letter-spacing */
+  function spaced(c, text, x, y, sp) {
+    var tx = x;
+    for (var i = 0; i < text.length; i++) {
+      c.fillText(text[i], tx, y);
+      tx += c.measureText(text[i]).width + sp;
+    }
+    return tx - sp - x;
+  }
+
+  function fitOneLine(c, text, weight, stack, max, min, maxW, step) {
+    var s = max;
+    while (s > min) {
+      c.font = weight + ' ' + s + 'px ' + stack;
+      if (c.measureText(text).width <= maxW) break;
+      s -= (step || 1);
+    }
+    c.font = weight + ' ' + s + 'px ' + stack;
+    return s;
+  }
+
+  /* wrap to at most `maxLines`, shrinking the type until it fits that budget */
+  function fitBlock(c, text, weight, stack, max, min, maxW, maxLines, step) {
+    var s = max, lines = [];
+    while (s >= min) {
+      c.font = weight + ' ' + s + 'px ' + stack;
+      lines = wrapLines(c, text, maxW);
+      if (lines.length <= maxLines) break;
+      s -= (step || 2);
+    }
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      lines[maxLines - 1] = lines[maxLines - 1].replace(/\s*\S{0,4}$/, '') + '…';
+    }
+    c.font = weight + ' ' + s + 'px ' + stack;
+    return { size: s, lines: lines };
+  }
+
+  function draw(spec) {
+    var c = document.createElement('canvas').getContext('2d');
+    var serif = spec.serif, sans = spec.sans;
+    var ink = spec.ink || '#191713';
+    var accent = spec.accent || '#a8542a';
+    var muted = spec.muted || '#8c8478';
+    var line = spec.line || '#e2dbcf';
+    var paper = spec.paper || '#f7f4ef';
+    var bodyInk = spec.bodyInk || '#4c463d';
+    var ls = spec.ls == null ? 3.2 : spec.ls;
+
+    var stats = spec.stats || [];
+    var quote = spec.quote || '';
+    var footer = spec.footer || '';
+
+    /* ================= layout pass — nothing is painted yet ============== */
+
+    /* title: wrapped, then shrunk until it fits three lines */
+    var T = fitBlock(c, spec.title || '', '700', serif, 104, 44, MAXW, 3, 2);
+    var tLh = Math.round(T.size * 1.16);
+    var tBase = 182 + 56 + Math.round(T.size * 0.72);
+    var tBottom = tBase + (T.lines.length - 1) * tLh;
+
+    /* body: wrapped, at most five lines */
+    var B = fitBlock(c, spec.body || '', '400', serif, 32, 21, MAXW, 5, 1);
+    var bLh = Math.round(B.size * 1.62);
+    var bBase = tBottom + 46 + Math.round(B.size * 0.72);
+    var bBottom = bBase + (B.lines.length - 1) * bLh;
+
+    /* stats: one inline row, shrunk to fit the column */
+    var statBase = 0, statSize = 0, statLine = '';
+    var y = bBottom;
+    if (stats.length) {
+      statLine = stats.map(function (s) { return s.k + ' ' + s.v; }).join('   ·   ');
+      statSize = fitOneLine(c, statLine, '600', sans, 28, 15, MAXW, 1);
+      statBase = bBottom + 34 + Math.round(statSize * 0.78);
+      y = statBase;
+    }
+
+    /* quote: a dark panel */
+    var Q = null;
+    if (quote) {
+      var qPad = 54;
+      Q = fitBlock(c, quote, '400', serif, 44, 24, MAXW - qPad * 2, 4, 2);
+      Q.lh = Math.round(Q.size * 1.45);
+      Q.pad = qPad;
+      Q.top = y + 96;
+      Q.h = qPad * 2 + (Q.lines.length - 1) * Q.lh;
+      y = Q.top + Q.h;
+    }
+
+    /* footer band: badge + wordmark, with the game's own line on the right */
+    var fTop = y + 104;
+    var fH = 34 + 19 * 1.16 + 8;
+    var H = Math.round(fTop + fH + 74);
+    if (H < 900) H = 900;
+
+    /* ================= paint pass ======================================== */
+    var cv = c.canvas;
+    cv.width = W; cv.height = H;
+    c = cv.getContext('2d');
+
+    c.fillStyle = paper; c.fillRect(0, 0, W, H);
+    c.strokeStyle = line; c.lineWidth = 2;
+    c.strokeRect(20, 20, W - 40, H - 40);
+
+    /* the game's own mark, top right */
+    if (typeof spec.mark === 'function') {
+      c.save();
+      spec.mark(c, W - PAD - 78, 106, 36);
+      c.restore();
+    }
+
+    /* kicker */
+    c.font = '700 23px ' + sans;
+    c.fillStyle = accent;
+    spaced(c, String(spec.kicker || '').toUpperCase(), PAD, 132, ls);
+    c.strokeStyle = line; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(PAD, 182); c.lineTo(W - PAD, 182); c.stroke();
+
+    /* title */
+    c.font = '700 ' + T.size + 'px ' + serif;
+    c.fillStyle = ink;
+    T.lines.forEach(function (ln, i) { c.fillText(ln, PAD, tBase + i * tLh); });
+
+    /* body */
+    c.font = '400 ' + B.size + 'px ' + serif;
+    c.fillStyle = bodyInk;
+    B.lines.forEach(function (ln, i) { c.fillText(ln, PAD, bBase + i * bLh); });
+
+    /* stats */
+    if (stats.length) {
+      c.font = '600 ' + statSize + 'px ' + sans;
+      c.fillStyle = bodyInk;
+      c.fillText(statLine, PAD, statBase);
+    }
+
+    /* quote panel */
+    if (Q) {
+      c.strokeStyle = line; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(PAD, Q.top - 64); c.lineTo(W - PAD, Q.top - 64); c.stroke();
+
+      TRILUMI.rr(c, PAD, Q.top, MAXW, Q.h, 6);
+      c.fillStyle = spec.panel || '#191713';
+      c.fill();
+
+      c.font = '400 ' + Q.size + 'px ' + serif;
+      c.fillStyle = spec.panelInk || '#f2ece2';
+      Q.lines.forEach(function (ln, i) {
+        c.fillText(ln, PAD + Q.pad, Q.top + Q.pad + Math.round(Q.size * 0.92) + i * Q.lh);
+      });
+    }
+
+    /* footer: the publisher left, the game's own line right */
+    c.strokeStyle = line; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(PAD, fTop - 30); c.lineTo(W - PAD, fTop - 30); c.stroke();
+
+    var stampW = TRILUMI.stamp(c, PAD, fTop, { badge: 34, word: 19, muted: muted });
+    if (footer) {
+      c.font = '400 20px ' + sans;
+      c.fillStyle = muted;
+      var fl = wrapLines(c, footer, MAXW - stampW - 60).slice(-2);
+      var fy = fTop + 34 + (fl.length > 1 ? -8 : 10);
+      fl.forEach(function (ln, i) {
+        c.fillText(ln, W - PAD - c.measureText(ln).width, fy + i * 28);
+      });
+    }
+
+    return cv;
+  }
+
+  /* plain-text twin, for the clipboard button */
+  function text(spec) {
+    var out = [spec.kicker, '', spec.title];
+    if (spec.body) out.push('', spec.body);
+    if (spec.stats && spec.stats.length) {
+      out.push('', spec.stats.map(function (s) { return s.k + ' ' + s.v; }).join('  ·  '));
+    }
+    if (spec.quote) out.push('', spec.quote);
+    if (spec.footer) out.push('', spec.footer);
+    out.push('', 'academy.trilumi.xyz');
+    return out.join('\n');
+  }
+
+  /* download / share, wired the same way in every game */
+  function save(cv, filename, onDone, onFail) {
+    function go(href, revoke) {
+      var a = document.createElement('a');
+      a.href = href; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      if (revoke) setTimeout(function () { URL.revokeObjectURL(href); }, 2000);
+      if (onDone) onDone();
+    }
+    try {
+      if (cv.toBlob) {
+        cv.toBlob(function (b) { go(URL.createObjectURL(b), true); }, 'image/png');
+      } else {
+        go(cv.toDataURL('image/png'), false);
+      }
+    } catch (e) { if (onFail) onFail(e); }
+  }
+
+  function copy(txt, ok, fail) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok, function () { legacy(txt, ok, fail); });
+    } else {
+      legacy(txt, ok, fail);
+    }
+  }
+
+  function legacy(txt, ok, fail) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, txt.length);
+      var done = document.execCommand('copy');
+      ta.remove();
+      done ? ok() : fail();
+    } catch (e) { fail(); }
+  }
+
+  return {
+    draw: draw, text: text, save: save, copy: copy,
+    wrapLines: wrapLines, fitBlock: fitBlock, W: W, PAD: PAD
+  };
+})();
+/* ==========================================================================
+   TRISHARE — one share sheet for the whole family
+   --------------------------------------------------------------------------
+   The card has to be *seen* before it is saved. On a phone, saving means
+   long-pressing the image, and you cannot long-press a download. So the sheet
+   shows the PNG, then offers the three ways out: save, copy the text, close.
+
+   Depends on TRICARD for the card itself. Styling is deliberately neutral so
+   it sits on top of a warm-paper game or a cold-green one without clashing.
+   ========================================================================== */
+var TRISHARE = (function () {
+  var STYLE =
+    '.trish{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;' +
+      'justify-content:center;padding:16px;background:rgba(12,11,10,.74)}' +
+    '.trish .box{background:#fbf9f4;border-radius:10px;width:100%;max-width:520px;' +
+      'max-height:93vh;overflow:auto;padding:18px 18px 14px;' +
+      'box-shadow:0 24px 64px rgba(0,0,0,.4);' +
+      'font-family:"Segoe UI",Helvetica,Arial,system-ui,sans-serif}' +
+    '.trish h3{margin:0 0 3px;font-size:15px;font-weight:700;color:#23201c}' +
+    '.trish .hint{margin:0 0 12px;font-size:12.5px;line-height:1.6;color:#7d7566}' +
+    '.trish .cvwrap{border:1px solid #e2dbcf;border-radius:6px;overflow:hidden;' +
+      'background:#fff;line-height:0}' +
+    '.trish img{display:block;width:100%;height:auto}' +
+    '.trish .acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}' +
+    '.trish button{flex:1 1 120px;padding:11px 12px;border-radius:6px;' +
+      'border:1px solid #cfc4ad;background:#fff;color:#23201c;font:inherit;' +
+      'font-size:13px;font-weight:600;cursor:pointer}' +
+    '.trish button.p{background:#004AAD;border-color:#004AAD;color:#fff}' +
+    '.trish button.w{flex-basis:100%}' +
+    '.trish .tg{margin-top:9px;min-height:16px;font-size:12px;color:#3d6b4a}' +
+    '.trish .tg.bad{color:#a8321e}';
+
+  var injected = false;
+  function inject() {
+    if (injected) return;
+    var s = document.createElement('style');
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+    injected = true;
+  }
+
+  /* strings, in the three languages the family ships. A game may override
+     any of them through opts. */
+  var T = {
+    en:   { title: 'Your card', hint: 'Long-press the image to save it, or use Download.',
+            dl: 'Download PNG', cp: 'Copy as text', cl: 'Close',
+            ok: 'Copied to clipboard', bad: 'Could not copy — select the text manually.' },
+    hans: { title: '你的结果卡片', hint: '长按图片保存，或点下面的下载。',
+            dl: '下载图片', cp: '复制文字', cl: '关闭',
+            ok: '已复制到剪贴板', bad: '复制失败，请手动选中文字。' },
+    hant: { title: '你的結果卡片', hint: '長按圖片儲存，或點下面的下載。',
+            dl: '下載圖片', cp: '複製文字', cl: '關閉',
+            ok: '已複製到剪貼簿', bad: '複製失敗，請手動選取文字。' }
+  };
+
+  function open(cv, txt, opts) {
+    opts = opts || {};
+    inject();
+    var L = T[opts.lang] || T.en;
+    var say = function (k) { return opts[k] || L[k]; };
+
+    var m = document.createElement('div');
+    m.className = 'trish';
+    m.innerHTML =
+      '<div class="box">' +
+        '<h3>' + say('title') + '</h3>' +
+        '<p class="hint">' + say('hint') + '</p>' +
+        '<div class="cvwrap"></div>' +
+        '<div class="acts">' +
+          '<button class="p" data-a="dl">' + say('dl') + '</button>' +
+          '<button data-a="cp">' + say('cp') + '</button>' +
+          '<button class="w" data-a="cl">' + say('cl') + '</button>' +
+        '</div>' +
+        '<p class="tg"></p>' +
+      '</div>';
+
+    var url;
+    try { url = cv.toDataURL('image/png'); } catch (e) { url = ''; }
+    if (url) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = say('title');
+      m.querySelector('.cvwrap').appendChild(img);
+    }
+
+    var tg = m.querySelector('.tg');
+    function note(msg, bad) {
+      tg.textContent = msg;
+      tg.className = 'tg' + (bad ? ' bad' : '');
+    }
+
+    m.querySelector('[data-a="dl"]').onclick = function () {
+      TRICARD.save(cv, opts.filename || 'trilumi-card.png', function () {
+        note(say('ok'));
+      }, function () {
+        note(say('bad'), true);
+      });
+    };
+    m.querySelector('[data-a="cp"]').onclick = function () {
+      TRICARD.copy(txt, function () { note(say('ok')); },
+                        function () { note(say('bad'), true); });
+    };
+    m.querySelector('[data-a="cl"]').onclick = function () { close(); };
+    m.onclick = function (e) { if (e.target === m) close(); };
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+
+    function close() {
+      document.removeEventListener('keydown', onKey);
+      m.remove();
+    }
+
+    /* the native sheet, where the browser can hand a file to another app —
+       which on a phone is the actual sharing path */
+    try {
+      if (navigator.canShare && cv.toBlob) {
+        cv.toBlob(function (b) {
+          var f;
+          try { f = new File([b], opts.filename || 'trilumi-card.png', { type: 'image/png' }); }
+          catch (e) { return; }
+          if (!navigator.canShare({ files: [f] })) return;
+          var btn = document.createElement('button');
+          btn.textContent = opts.shareNative || 'Share';
+          btn.onclick = function () {
+            navigator.share({ files: [f], text: txt }).catch(function () {});
+          };
+          m.querySelector('.acts').insertBefore(btn, m.querySelector('[data-a="cl"]'));
+        }, 'image/png');
+      }
+    } catch (e) {}
+
+    document.body.appendChild(m);
+  }
+
+  return { open: open };
+})();
+/* ==========================================================================
+   造世 · THE MAKER — 1/4  constants, text, state
+   --------------------------------------------------------------------------
+   The whole game is one canvas and one stage machine. Nothing is random:
+   every jitter, every tuft of grass, every star position is derived from a
+   hash of the cell coordinate, so the world looks the same after a repaint
+   and the same on every device. A world that reshuffles itself when you
+   scroll is not a world.
+   ========================================================================== */
+
+/* The world is shaped to the screen: a landscape window on a desktop, a
+   portrait one on a phone. A 44-column grid inside 330 CSS pixels puts a
+   person in a cell seven pixels wide, which is not something a thumb can hit —
+   and the first day of creation should not be a precision exercise. */
+var NARROW = (typeof window !== "undefined") && window.innerWidth < 700;
+var COLS = NARROW ? 30 : 44;
+var ROWS = NARROW ? 40 : 26;
+var CW = NARROW ? 660 : 880;
+var CH = Math.round(CW * ROWS / COLS);
+var CELL_W = CW / COLS, CELL_H = CH / ROWS;
+
+/* terrain, in the order it can appear. VOID is the only one you cannot paint. */
+var VOID = 0, LIGHT = 1, WATER = 2, EARTH = 3, PLANT = 4;
+
+/* how much of the canvas is "sky" — the band where 日 月 星 may hang */
+var SKY = 0.30;
+
+/* a stage is: what you may paint, how much of it, and what it says */
+var S = {
+  OPEN: 0, DAY1: 1, DAY2: 2, DAY3: 3, DAY4: 4, DAY5: 5, DAY6: 6,
+  LAW: 7, REST: 8, ENTER: 9, END: 10
+};
+
+var TRACK_ON = /(^|\.)trilumi\.xyz$/.test(location.hostname);
+var TRACK_URL = "/_e/p.gif";
+
+/* ==========================================================================
+   text — 繁體 / 简体 / English. Written as three parallel blocks rather than
+   one keyed object, because a translator reads a column, not a dictionary.
+   ========================================================================== */
+var L = {
+hant: {
+  lang:"zh-Hant",
+  gtitle:"造世", subtitle:"七日造物 · 一場",
+  share:"分享", install:"裝到桌面",
+  days:["起初","一","二","三","四","五","六","七"],
+
+  s0_big:"起初",
+  s0_mid:"地是空虛混沌，淵面黑暗。",
+  s0_sm:"沒有形狀。沒有光。沒有你。",
+  s0_btn:"你來造",
+
+  el_light:"光", el_water:"水", el_earth:"土", el_plant:"草木",
+  el_fish:"魚", el_bird:"鳥", el_beast:"獸", el_human:"人",
+  el_sun:"日", el_moon:"月", el_star:"星",
+  el_hint:"選一樣，在世界上畫。",
+
+  s1_big:"第一日 · 分光",
+  s1_say:"在黑暗上畫出光。這是世界的第一層。",
+  s1_need:"光",
+  s1_done:"有晚上，有早晨。",
+  s1_done2:"你稱光為晝，稱暗為夜。這是第一日。",
+
+  s2_big:"第二日 · 分水與土",
+  s2_say:"水要聚在一處，旱地要露出來。兩種都要有。",
+  s2_need:"水與土",
+  s2_done:"你看見了地，也看見了海。",
+  s2_done2:"你稱旱地為地，稱水的聚處為海。這是第二日。",
+
+  s3_big:"第三日 · 草木",
+  s3_say:"草木只長在土上。畫在水上的，會變成藻。",
+  s3_need:"草木",
+  s3_done:"地長出青草、菜蔬，和結果子的樹。",
+  s3_done2:"各從其類，果子都包著核。這是第三日。",
+
+  s4_big:"第四日 · 光體",
+  s4_say:"在上方掛起日、月、星辰。你放的光體，會改變整個世界的顏色。",
+  s4_need:"光體",
+  s4_rule:"日 1 · 月 1 · 星 5",
+  s4_done:"光體要在天空，普照於地。",
+  s4_done2:"大的管晝，小的管夜，還有眾星。這是第四日。",
+
+  s5_big:"第五日 · 眾生",
+  s5_say:"魚只在水裡，鳥在天上，獸只在陸上。造一隻，然後給牠名字。",
+  s5_need:"活物",
+  s5_name_t:"給牠一個名字。",
+  s5_name_l:"你造了牠。現在，叫牠。",
+  s5_name_ph:"牠的名字",
+  s5_name_btn:"命名",
+  s5_named:"牠叫「{n}」。",
+  s5_named2:"從此，世界裡有了一樣你叫得出名字的東西。",
+  s5_done:"水滋生生命，鳥飛在地面以上。",
+  s5_done2:"各從其類，你都看著是好的。這是第五日。",
+
+  s6_big:"第六日 · 造人",
+  s6_say:"地要生出人來。放在土上，或草木之間。",
+  s6_need:"人",
+  s6_ask_t:"他們抬起頭，問：你是誰？",
+  s6_ask_l:"世界第一次向你說話。它在問你的名字。",
+  s6_ask_ph:"你的名字",
+  s6_ask_btn:"回答",
+  s6_ask_note:"你答了。他們記住了。",
+  s6_done:"你照著自己的樣子造了他們。",
+  s6_done2:"你看一切所造的，都甚好。這是第六日。",
+
+  s7_big:"立法",
+  s7_say:"世界已經成形。現在給它規矩——它會永遠守著。",
+  s7_lede:"選三條。世界會照做。",
+  s7_pick:"已選 {n}/3",
+  s7_btn:"就這樣",
+  s7_note:"這些話會刻在世界裡，比石頭久。",
+
+  s8_big:"第七日 · 安息",
+  s8_say:"你停手了。世界開始自己運轉。",
+  s8_done:"天地萬物都造齊了。",
+  s8_done2:"第七日，你歇了工。",
+  s8_btn:"入世",
+
+  s9_big:"你親手創造世界。",
+  s9_mid:"可這世界，沒有你的位置。",
+  s9_reach:"你伸出手。",
+  s9_try:"每一格都已經有人了。",
+  s9_skip:"看夠了",
+
+  s10_ask:"你要怎麼辦？",
+  s10_a:"毀了它，換一個位置",
+  s10_b:"留下它，站在外面",
+  s10_a_big:"你有了位置。",
+  s10_a_mid:"世界沒有了。",
+  s10_a_sm:"你造了一整座世界，只是為了給自己騰出一個格子。",
+  s10_b_big:"世界繼續運轉。",
+  s10_b_mid:"它不需要你。",
+  s10_b_sm:"它會記得你——以一個名字，寫在沒有人讀的地方。",
+  s10_again:"再造一次",
+  next:"繼續",
+  card_teaser_title:"造世 · 七日造物",
+  card_teaser_body:"你在虛空上畫光、畫水、畫土，造活物，給世界立規矩。七日之後，你要找一個位置——自己的位置。",
+  card_named_as:"世界記得你叫「{n}」。",
+
+  occ_light:"此處有光", occ_water:"此處有水", occ_earth:"此處有土",
+  occ_plant:"此處有草木", occ_fish:"此處有魚", occ_bird:"此處有鳥",
+  occ_beast:"此處有獸", occ_human:"此處有人",
+  occ_sun:"此處有日", occ_moon:"此處有月", occ_star:"此處有星",
+  you:"你",
+
+  st_world:"世界", st_life:"活物", st_names:"命名", st_laws:"立法",
+  st_time:"所費", st_painted:"已造",
+  card_kicker:"造世 · 七日",
+  card_title:"你親手創造世界，可這世界沒有你位置",
+  card_body:"七日之內，你在虛空上畫出光、水、土、草木，掛起日月星辰，造了魚鳥獸與人，給世界留下三條規矩。然後你找自己的位置——一格也沒有。",
+  card_law:"你寫下：",
+  card_footer:"academy.trilumi.xyz",
+  ok:"已複製", bad:"複製失敗，請手動選取。",
+  title:"你的結果卡片", hint:"長按圖片儲存，或點下面的下載。",
+  dl:"下載圖片", cp:"複製文字", cl:"關閉"
+},
+hans: {
+  lang:"zh-Hans",
+  gtitle:"造世", subtitle:"七日造物 · 一场",
+  share:"分享", install:"装到桌面",
+  days:["起初","一","二","三","四","五","六","七"],
+
+  s0_big:"起初",
+  s0_mid:"地是空虚混沌，渊面黑暗。",
+  s0_sm:"没有形状。没有光。没有你。",
+  s0_btn:"你来造",
+
+  el_light:"光", el_water:"水", el_earth:"土", el_plant:"草木",
+  el_fish:"鱼", el_bird:"鸟", el_beast:"兽", el_human:"人",
+  el_sun:"日", el_moon:"月", el_star:"星",
+  el_hint:"选一样，在世界上画。",
+
+  s1_big:"第一日 · 分光",
+  s1_say:"在黑暗上画出光。这是世界的第一层。",
+  s1_need:"光",
+  s1_done:"有晚上，有早晨。",
+  s1_done2:"你称光为昼，称暗为夜。这是第一日。",
+
+  s2_big:"第二日 · 分水与土",
+  s2_say:"水要聚在一处，旱地要露出来。两种都要有。",
+  s2_need:"水与土",
+  s2_done:"你看见了地，也看见了海。",
+  s2_done2:"你称旱地为地，称水的聚处为海。这是第二日。",
+
+  s3_big:"第三日 · 草木",
+  s3_say:"草木只长在土上。画在水上的，会变成藻。",
+  s3_need:"草木",
+  s3_done:"地长出青草、菜蔬，和结果子的树。",
+  s3_done2:"各从其类，果子都包着核。这是第三日。",
+
+  s4_big:"第四日 · 光体",
+  s4_say:"在上方挂起日、月、星辰。你放的光体，会改变整个世界的颜色。",
+  s4_need:"光体",
+  s4_rule:"日 1 · 月 1 · 星 5",
+  s4_done:"光体要在天空，普照于地。",
+  s4_done2:"大的管昼，小的管夜，还有众星。这是第四日。",
+
+  s5_big:"第五日 · 众生",
+  s5_say:"鱼只在水里，鸟在天上，兽只在陆上。造一只，然后给它名字。",
+  s5_need:"活物",
+  s5_name_t:"给它一个名字。",
+  s5_name_l:"你造了它。现在，叫它。",
+  s5_name_ph:"它的名字",
+  s5_name_btn:"命名",
+  s5_named:"它叫「{n}」。",
+  s5_named2:"从此，世界里有了一个你叫得出名字的东西。",
+  s5_done:"水滋生生命，鸟飞在地面以上。",
+  s5_done2:"各从其类，你都看着是好的。这是第五日。",
+
+  s6_big:"第六日 · 造人",
+  s6_say:"地要生出人来。放在土上，或草木之间。",
+  s6_need:"人",
+  s6_ask_t:"他们抬起头，问：你是谁？",
+  s6_ask_l:"世界第一次向你说话。它在问你的名字。",
+  s6_ask_ph:"你的名字",
+  s6_ask_btn:"回答",
+  s6_ask_note:"你答了。他们记住了。",
+  s6_done:"你照着自己的样子造了他们。",
+  s6_done2:"你看一切所造的，都甚好。这是第六日。",
+
+  s7_big:"立法",
+  s7_say:"世界已经成形。现在给它规矩——它会永远守着。",
+  s7_lede:"选三条。世界会照做。",
+  s7_pick:"已选 {n}/3",
+  s7_btn:"就这样",
+  s7_note:"这些话会刻在世界里，比石头久。",
+
+  s8_big:"第七日 · 安息",
+  s8_say:"你停手了。世界开始自己运转。",
+  s8_done:"天地万物都造齐了。",
+  s8_done2:"第七日，你歇了工。",
+  s8_btn:"入世",
+
+  s9_big:"你亲手创造世界。",
+  s9_mid:"可这世界，没有你的位置。",
+  s9_reach:"你伸出手。",
+  s9_try:"每一格都已经有人了。",
+  s9_skip:"看够了",
+
+  s10_ask:"你要怎么办？",
+  s10_a:"毁了它，换一个位置",
+  s10_b:"留下它，站在外面",
+  s10_a_big:"你有了位置。",
+  s10_a_mid:"世界没有了。",
+  s10_a_sm:"你造了一整座世界，只是为了给自己腾出一个格子。",
+  s10_b_big:"世界继续运转。",
+  s10_b_mid:"它不需要你。",
+  s10_b_sm:"它会记得你——以一个名字，写在没有人读的地方。",
+  s10_again:"再造一次",
+  next:"继续",
+  card_teaser_title:"造世 · 七日造物",
+  card_teaser_body:"你在虚空上画光、画水、画土，造活物，给世界立规矩。七日之后，你要找一个位置——自己的位置。",
+  card_named_as:"世界记得你叫「{n}」。",
+
+  occ_light:"此处有光", occ_water:"此处有水", occ_earth:"此处有土",
+  occ_plant:"此处有草木", occ_fish:"此处有鱼", occ_bird:"此处有鸟",
+  occ_beast:"此处有兽", occ_human:"此处有人",
+  occ_sun:"此处有日", occ_moon:"此处有月", occ_star:"此处有星",
+  you:"你",
+
+  st_world:"世界", st_life:"活物", st_names:"命名", st_laws:"立法",
+  st_time:"所费", st_painted:"已造",
+  card_kicker:"造世 · 七日",
+  card_title:"你亲手创造世界，可这世界没有你位置",
+  card_body:"七日之内，你在虚空上画出光、水、土、草木，挂起日月星辰，造了鱼鸟兽与人，给世界留下三条规矩。然后你找自己的位置——一格也没有。",
+  card_law:"你写下：",
+  card_footer:"academy.trilumi.xyz",
+  ok:"已复制", bad:"复制失败，请手动选取。",
+  title:"你的结果卡片", hint:"长按图片保存，或点下面的下载。",
+  dl:"下载图片", cp:"复制文字", cl:"关闭"
+},
+en: {
+  lang:"en",
+  gtitle:"THE MAKER", subtitle:"seven days of making",
+  share:"Share", install:"Install",
+  days:["Before","1","2","3","4","5","6","7"],
+
+  s0_big:"IN THE BEGINNING",
+  s0_mid:"The earth was formless and void, and darkness was over the deep.",
+  s0_sm:"No shape. No light. No you.",
+  s0_btn:"Make it",
+
+  el_light:"Light", el_water:"Water", el_earth:"Earth", el_plant:"Plants",
+  el_fish:"Fish", el_bird:"Bird", el_beast:"Beast", el_human:"Human",
+  el_sun:"Sun", el_moon:"Moon", el_star:"Star",
+  el_hint:"Pick one, then paint the world.",
+
+  s1_big:"Day One · Light",
+  s1_say:"Paint light onto the dark. This is the world's first layer.",
+  s1_need:"light",
+  s1_done:"There was evening, and there was morning.",
+  s1_done2:"You called the light day, and the darkness night. The first day.",
+
+  s2_big:"Day Two · Water and Earth",
+  s2_say:"Let the waters be gathered, and let dry land appear. You need both.",
+  s2_need:"water and earth",
+  s2_done:"You saw the land, and you saw the sea.",
+  s2_done2:"You called the dry land earth, and the gathered waters seas. The second day.",
+
+  s3_big:"Day Three · Plants",
+  s3_say:"Plants grow only on earth. Painted on water, they become kelp.",
+  s3_need:"plants",
+  s3_done:"The earth brought forth grass, and herbs, and trees bearing fruit.",
+  s3_done2:"Each after its kind, with seed in itself. The third day.",
+
+  s4_big:"Day Four · Lights",
+  s4_say:"Hang sun, moon and stars above. The lights you place change the colour of the whole world.",
+  s4_need:"lights",
+  s4_rule:"sun 1 · moon 1 · stars 5",
+  s4_done:"Let there be lights in the sky, to give light upon the earth.",
+  s4_done2:"The greater for the day, the lesser for the night, and the stars also. The fourth day.",
+
+  s5_big:"Day Five · Living Things",
+  s5_say:"Fish only in water, birds in the air, beasts only on land. Make one — then give it a name.",
+  s5_need:"creatures",
+  s5_name_t:"Give it a name.",
+  s5_name_l:"You made it. Now call it.",
+  s5_name_ph:"its name",
+  s5_name_btn:"Name it",
+  s5_named:"Its name is \u201C{n}\u201D.",
+  s5_named2:"Now the world holds one thing you can call by name.",
+  s5_done:"The waters brought forth life, and birds flew above the earth.",
+  s5_done2:"Each after its kind, and you saw that it was good. The fifth day.",
+
+  s6_big:"Day Six · Humankind",
+  s6_say:"Let the earth bring forth people. Place them on earth, or among the plants.",
+  s6_need:"people",
+  s6_ask_t:"They look up and ask: who are you?",
+  s6_ask_l:"For the first time, the world speaks to you. It is asking for your name.",
+  s6_ask_ph:"your name",
+  s6_ask_btn:"Answer",
+  s6_ask_note:"You answered. They remembered.",
+  s6_done:"You made them in your own image.",
+  s6_done2:"You looked at everything you had made, and it was very good. The sixth day.",
+
+  s7_big:"Laws",
+  s7_say:"The world has taken shape. Now give it rules — it will keep them forever.",
+  s7_lede:"Choose three. The world will obey.",
+  s7_pick:"{n} of 3 chosen",
+  s7_btn:"That is all",
+  s7_note:"These words will be cut into the world, and outlast stone.",
+
+  s8_big:"Day Seven · Rest",
+  s8_say:"You stopped. The world began to run itself.",
+  s8_done:"The heavens and the earth were finished, and all their host.",
+  s8_done2:"On the seventh day, you rested from your work.",
+  s8_btn:"Enter",
+
+  s9_big:"You made this world with your own hands.",
+  s9_mid:"And this world has no place for you.",
+  s9_reach:"You reach out.",
+  s9_try:"Every cell is already taken.",
+  s9_skip:"Enough",
+
+  s10_ask:"What will you do?",
+  s10_a:"Destroy it, and take a place",
+  s10_b:"Leave it, and stand outside",
+  s10_a_big:"You have a place.",
+  s10_a_mid:"There is no world.",
+  s10_a_sm:"You built an entire world just to clear one cell for yourself.",
+  s10_b_big:"The world keeps turning.",
+  s10_b_mid:"It does not need you.",
+  s10_b_sm:"It will remember you \u2014 as a name, written where nobody reads.",
+  s10_again:"Make another",
+  next:"Continue",
+  card_teaser_title:"THE MAKER · seven days",
+  card_teaser_body:"You paint light, water and earth onto the void, make living things, and give the world its laws. After seven days you go looking for a place in it \u2014 your own.",
+  card_named_as:"The world remembers you as \u201C{n}\u201D.",
+
+  occ_light:"light here", occ_water:"water here", occ_earth:"earth here",
+  occ_plant:"plants here", occ_fish:"a fish here", occ_bird:"a bird here",
+  occ_beast:"a beast here", occ_human:"a person here",
+  occ_sun:"the sun here", occ_moon:"the moon here", occ_star:"a star here",
+  you:"you",
+
+  st_world:"world", st_life:"living", st_names:"named", st_laws:"laws",
+  st_time:"time", st_painted:"made",
+  card_kicker:"THE MAKER · SEVEN DAYS",
+  card_title:"You made the world with your own hands. It has no place for you.",
+  card_body:"In seven days you painted light, water, earth and plants onto the void, hung sun and moon and stars, made fish and birds and beasts and people, and left the world three laws. Then you looked for your own place in it. There was not one cell left.",
+  card_law:"You wrote:",
+  card_footer:"academy.trilumi.xyz",
+  ok:"Copied", bad:"Could not copy \u2014 select the text manually.",
+  title:"Your card", hint:"Long-press the image to save it, or use Download.",
+  dl:"Download PNG", cp:"Copy as text", cl:"Close"
+}
+};
+
+var LANG = "hant";
+function t(k){ var v = L[LANG][k]; return (v === undefined) ? ("[" + k + "]") : v; }
+function tf(k, o){
+  var s = t(k);
+  for (var p in o) s = s.split("{" + p + "}").join(o[p]);
+  return s;
+}
+
+/* the six laws, per language. Index-aligned across the three tables. */
+var LAWS = {
+  hant:[
+    ["凡有生之物，皆有其位。","世界不會留下任何一個無處可去的人。"],
+    ["萬物各有其序，無物在其外。","一切都有次序，不必有人看管。"],
+    ["造物歸於此世，不復歸於造者。","你造的東西，永遠屬於它自己。"],
+    ["見者不居，居者不見。","你不在裡面，也就不會干涉它。"],
+    ["此世自足，不假外求。","它會自己活下去。"],
+    ["凡入此世者，必生於此世。","進來的，都是它自己生的。"]
+  ],
+  hans:[
+    ["凡有生之物，皆有其位。","世界不会留下任何一个无处可去的人。"],
+    ["万物各有其序，无物在其外。","一切都有次序，不必有人看管。"],
+    ["造物归于此世，不复归于造者。","你造的东西，永远属于它自己。"],
+    ["见者不居，居者不现。","你不在里面，也就不会干涉它。"],
+    ["此世自足，不假外求。","它会自己活下去。"],
+    ["凡入此世者，必生于此世。","进来的，都是它自己生的。"]
+  ],
+  en:[
+    ["Every living thing shall have its place.","No one in this world will be left with nowhere to go."],
+    ["All things shall keep their order; nothing shall stand outside it.","Everything has its order. No one needs to watch over it."],
+    ["What is made belongs to this world, and never again to its maker.","What you make will always belong to itself."],
+    ["The one who sees does not dwell; the one who dwells does not see.","You are not in it, so you cannot interfere with it."],
+    ["This world is sufficient unto itself; it shall seek nothing outside.","It will live on its own."],
+    ["Whoever would enter this world must be born into it.","All who come in are born of it."]
+  ]
+};
+/* ==========================================================================
+   造世 · THE MAKER — 2/4  the world: state, painting rules, renderer
+   ========================================================================== */
+
+var G = {
+  stage: S.OPEN,
+  cell: new Uint8Array(COLS * ROWS),      /* terrain */
+  tint: new Uint8Array(COLS * ROWS),      /* 0|1 — two tones per terrain, from the hash */
+  life: [],                               /* {x,y,k,n} — k: fish|bird|beast|human */
+  sky: [],                                /* {x,y,k} — k: sun|moon|star */
+  brush: null,
+  laws: [], nameOf: "", name: "",
+  t0: Date.now(),
+  dirty: true,
+  lastBake: 0,
+  zoom: 0,                                /* 0..1 — the camera push at the end */
+  mark: null,                             /* the creator's own token, during 入世 */
+  markTaken: ""
+};
+
+/* ---------------------------------------------------------------- helpers */
+
+function idx(x, y){ return y * COLS + x; }
+function inB(x, y){ return x >= 0 && y >= 0 && x < COLS && y < ROWS; }
+
+/* deterministic noise. Math.imul keeps it in 32 bits — the naive
+   (n * 1274126177) overflows 2^53 and silently loses the low bits, which
+   makes the world look different on every repaint. */
+function hash(x, y, s){
+  var n = Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(s | 0, 83492791);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+
+function count(terr){
+  var n = 0;
+  for (var i = 0; i < G.cell.length; i++) if (G.cell[i] === terr) n++;
+  return n;
+}
+function lifeCount(kind){
+  if (!kind) return G.life.length;
+  var n = 0;
+  for (var i = 0; i < G.life.length; i++) if (G.life[i].k === kind) n++;
+  return n;
+}
+function skyCount(kind){
+  var n = 0;
+  for (var i = 0; i < G.sky.length; i++) if (G.sky[i].k === kind) n++;
+  return n;
+}
+function totalPainted(){
+  var n = 0;
+  for (var i = 0; i < G.cell.length; i++) if (G.cell[i] !== VOID) n++;
+  return n;
+}
+
+/* ------------------------------------------------------------ paint rules
+   Each terrain and each creature has an opinion about where it may go. The
+   opinions are the whole design: 草木 refusing the void is why the world ends
+   up with structure, and 魚 refusing dry land is why the map reads as a map.
+   ------------------------------------------------------------------------ */
+
+function mayPaint(terr, x, y){
+  var c = G.cell[idx(x, y)];
+  if (terr === LIGHT) return c === VOID || c === LIGHT;
+  if (terr === WATER || terr === EARTH) return true;          /* land forms anywhere */
+  if (terr === PLANT) return c === EARTH || c === WATER;      /* never on void or bare light */
+  return false;
+}
+
+function mayPlaceLife(kind, x, y){
+  var c = G.cell[idx(x, y)];
+  if (kind === "fish") return c === WATER;
+  if (kind === "bird") return c !== VOID;
+  return c === EARTH || c === PLANT;                          /* beast, human */
+}
+function mayPlaceSky(kind, x, y){
+  if (y > ROWS * SKY) return false;
+  if (kind === "sun")  return skyCount("sun") < 1;
+  if (kind === "moon") return skyCount("moon") < 1;
+  return skyCount("star") < 5;
+}
+
+/* one stroke. Returns the number of cells actually changed. */
+function stroke(terr, px, py, radius){
+  var x0 = Math.floor((px - radius) / CELL_W), x1 = Math.ceil((px + radius) / CELL_W);
+  var y0 = Math.floor((py - radius) / CELL_H), y1 = Math.ceil((py + radius) / CELL_H);
+  var r2 = radius * radius, n = 0, x, y, i, dx, dy;
+  for (y = y0; y <= y1; y++) {
+    for (x = x0; x <= x1; x++) {
+      if (!inB(x, y)) continue;
+      dx = (x + 0.5) * CELL_W - px; dy = (y + 0.5) * CELL_H - py;
+      if (dx * dx + dy * dy > r2) continue;
+      if (!mayPaint(terr, x, y)) continue;
+      i = idx(x, y);
+      /* the brush is not uniform: roughly one cell in five inside the disc
+         refuses the paint, which is what stops a stroke looking like a
+         circle and starts it looking like ground. */
+      if (hash(x, y, 9) < 0.12) continue;
+      if (terr === PLANT) {
+        var sub = (G.cell[i] === WATER) ? 1 : 0;              /* 1 = kelp */
+        if (G.cell[i] === PLANT && G.tint[i] === sub) continue;
+        G.cell[i] = PLANT; G.tint[i] = sub;
+      } else {
+        if (G.cell[i] === terr) continue;
+        G.cell[i] = terr;
+        G.tint[i] = hash(x, y, 7) < 0.5 ? 0 : 1;
+      }
+      n++;
+    }
+  }
+  if (n) G.dirty = true;
+  return n;
+}
+/* ==========================================================================
+   造世 · THE MAKER — 2b/4  the renderer
+   --------------------------------------------------------------------------
+   Two layers. The terrain is baked into an offscreen canvas and repainted only
+   when something actually changes; everything that moves — the sun's glow, a
+   star twinkling, a fish bobbing — is drawn fresh on top. Baking is what makes
+   a 1144-cell world cheap enough to animate at 30fps.
+
+   How the ground is built: every cell lays down one soft blob, and the blobs
+   are drawn at roughly twice the cell pitch so neighbours overlap heavily. The
+   first version of this drew one disc per cell at cell size, and the result
+   looked like bubble wrap — you could see every cell. Overlap plus a long
+   gradient tail plus three tones per terrain gives mottling instead of circles.
+   ========================================================================== */
+
+var cv = document.getElementById("cv");
+cv.width = CW; cv.height = CH;
+var ctx = cv.getContext("2d");
+var base = document.createElement("canvas");
+base.width = CW; base.height = CH;
+var bctx = base.getContext("2d");
+
+/* one soft blob, pre-rendered. Drawing 1144 gradients a frame is not
+   affordable; drawing 1144 cached sprites is. */
+function makeBlob(rgb){
+  var SZ = 96, c = document.createElement("canvas");
+  c.width = c.height = SZ;
+  var g = c.getContext("2d");
+  var grad = g.createRadialGradient(SZ / 2, SZ / 2, 0, SZ / 2, SZ / 2, SZ / 2);
+  grad.addColorStop(0,    "rgba(" + rgb + ",1)");
+  grad.addColorStop(0.34, "rgba(" + rgb + ",.62)");
+  grad.addColorStop(0.68, "rgba(" + rgb + ",.20)");
+  grad.addColorStop(1,    "rgba(" + rgb + ",0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, SZ, SZ);
+  return c;
+}
+function blobSet(a, b, c){ return [makeBlob(a), makeBlob(b), makeBlob(c)]; }
+
+/* three tones each, dark → light. The tone is picked per cell from the hash,
+   which is what stops a field of one terrain reading as one flat colour.
+   Light's three tones sit close together and all of them are bright: light is
+   a field, not a texture, and the first version's wide dark-to-gold spread
+   made day one look like a beach. */
+var BLOB = {
+  light: blobSet("255,216,166", "255,231,198", "255,243,222"),
+  water: blobSet("20,58,88",    "30,84,118",   "42,110,150"),
+  earth: blobSet("88,64,42",    "116,88,60",   "146,116,84"),
+  plant: blobSet("34,86,56",    "48,114,74",   "64,142,96"),
+  kelp:  blobSet("22,74,68",    "32,98,88",    "46,124,108")
+};
+
+/* per-cell geometry. Everything is derived from the hash, so the world looks
+   identical after a repaint and identical on every device. */
+function cellGeom(x, y){
+  var cx = (x + 0.5) * CELL_W + (hash(x, y, 1) - 0.5) * CELL_W * 0.44;
+  var cy = (y + 0.5) * CELL_H + (hash(x, y, 2) - 0.5) * CELL_H * 0.44;
+  var r  = CELL_W * 1.16 * (0.86 + hash(x, y, 3) * 0.30);
+  return { cx: cx, cy: cy, r: r, tone: Math.floor(hash(x, y, 7) * 3) };
+}
+
+function bake(){
+  bctx.setTransform(1, 0, 0, 1, 0, 0);
+  bctx.globalAlpha = 1;
+  bctx.globalCompositeOperation = "source-over";
+  bctx.clearRect(0, 0, CW, CH);
+
+  /* the void — not flat black. A world you are about to fill should already
+     have a grain to it, or the first stroke lands on nothing. */
+  bctx.fillStyle = "#04050a";
+  bctx.fillRect(0, 0, CW, CH);
+  bctx.fillStyle = "rgba(126,148,196,.055)";
+  for (var i = 0; i < 2400; i++) {
+    bctx.fillRect(hash(i, 0, 21) * CW, hash(i, 1, 21) * CH, 1, 1);
+  }
+
+  var x, y, g, k, c;
+
+  /* pass 1 — light, additive, underneath everything. Two runs: the field
+     itself, then a wide, faint bloom of the same cells, which is what turns
+     "beige gravel" into something that reads as a source of light. */
+  var lights = [];
+  for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) {
+    if (G.cell[idx(x, y)] === LIGHT) lights.push(x, y);
+  }
+  bctx.globalCompositeOperation = "lighter";
+  for (i = 0; i < lights.length; i += 2) {
+    x = lights[i]; y = lights[i + 1];
+    g = cellGeom(x, y);
+    bctx.globalAlpha = 0.46;
+    bctx.drawImage(BLOB.light[g.tone], g.cx - g.r, g.cy - g.r, g.r * 2, g.r * 2);
+  }
+  for (i = 0; i < lights.length; i += 2) {
+    x = lights[i]; y = lights[i + 1];
+    g = cellGeom(x, y);
+    var R = g.r * 3.2;
+    bctx.globalAlpha = 0.075;
+    bctx.drawImage(BLOB.light[1], g.cx - R, g.cy - R, R * 2, R * 2);
+  }
+  bctx.globalAlpha = 1;
+  bctx.globalCompositeOperation = "source-over";
+
+  /* pass 2 — water and earth */
+  for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) {
+    c = G.cell[idx(x, y)];
+    if (c !== WATER && c !== EARTH) continue;
+    g = cellGeom(x, y);
+    bctx.globalAlpha = 0.95;
+    bctx.drawImage((c === WATER ? BLOB.water : BLOB.earth)[g.tone],
+                   g.cx - g.r, g.cy - g.r, g.r * 2, g.r * 2);
+  }
+
+  /* pass 3 — plants, slightly smaller than the ground so a rim of soil or
+     water still shows around every clump */
+  for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) {
+    if (G.cell[idx(x, y)] !== PLANT) continue;
+    g = cellGeom(x, y);
+    var kelp = G.tint[idx(x, y)] === 1;
+    var rr2 = g.r * 0.94;
+    bctx.globalAlpha = 0.92;
+    bctx.drawImage((kelp ? BLOB.kelp : BLOB.plant)[g.tone],
+                   g.cx - rr2, g.cy - rr2, rr2 * 2, rr2 * 2);
+  }
+  bctx.globalAlpha = 1;
+
+  /* pass 4 — blades. Density is modulated on a coarse grid first, so the
+     canopy has clearings in it; a blade on every planted cell reads as
+     wallpaper, not as grass. Each blade also gets its own angle and length. */
+  bctx.lineCap = "round";
+  for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) {
+    if (G.cell[idx(x, y)] !== PLANT) continue;
+    if (hash(Math.floor(x / 3), Math.floor(y / 3), 40) > 0.72) continue;
+    if (hash(x, y, 14) > 0.66) continue;
+    g = cellGeom(x, y);
+    kelp = G.tint[idx(x, y)] === 1;
+    var blades = 1 + Math.floor(hash(x, y, 15) * 3);
+    for (k = 0; k < blades; k++) {
+      var ang = (hash(x, y, 16 + k) - 0.5) * 1.7;
+      var len = (kelp ? 6 : 4) + hash(x, y, 19 + k) * 5;
+      bctx.save();
+      bctx.translate(g.cx + (hash(x, y, 22 + k) - 0.5) * 9, g.cy + 3);
+      bctx.rotate(ang);
+      bctx.strokeStyle = kelp ? "rgba(104,190,166,.40)" : "rgba(146,218,162,.38)";
+      bctx.lineWidth = 1.4;
+      bctx.beginPath();
+      bctx.moveTo(0, 0);
+      bctx.lineTo(0, -len);
+      bctx.stroke();
+      bctx.restore();
+    }
+  }
+
+  G.dirty = false;
+  G.lastBake = Date.now();
+}
+
+/* ------------------------------------------------------------- the frame */
+
+/* a standing atmosphere, drawn over the terrain but under everything alive:
+   cooler and darker at the top of the frame, warmer at the bottom. It is what
+   makes the rectangle read as a place with a sky in it rather than a map. */
+var ATMO = (function () {
+  var g = ctx.createLinearGradient(0, 0, 0, CH);
+  g.addColorStop(0,    "rgba(32,58,104,.34)");
+  g.addColorStop(0.42, "rgba(18,26,44,.06)");
+  g.addColorStop(0.72, "rgba(40,30,14,.03)");
+  g.addColorStop(1,    "rgba(46,32,14,.14)");
+  return g;
+})();
+
+/* built once — a gradient per frame per frame is a waste */
+var VIGNETTE = (function () {
+  var g = ctx.createRadialGradient(CW * 0.5, CH * 0.5, CH * 0.30,
+                                   CW * 0.5, CH * 0.5, CH * 0.94);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(0.60, "rgba(0,0,0,.10)");
+  g.addColorStop(1, "rgba(0,0,0,.64)");
+  return g;
+})();
+
+function drawFrame(now){
+  var tt = now / 1000;
+  if (G.dirty && Date.now() - G.lastBake > 70) bake();
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.drawImage(base, 0, 0);
+  ctx.fillStyle = ATMO;
+  ctx.fillRect(0, 0, CW, CH);
+
+  var x, y, i, g, o;
+
+  /* water shimmer — only a quarter of the water cells carry a highlight,
+     which is enough to read as moving water and cheap enough to run at 30fps */
+  ctx.lineCap = "round";
+  for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) {
+    i = idx(x, y);
+    if (G.cell[i] !== WATER) continue;
+    if (hash(x, y, 31) > 0.22) continue;
+    g = cellGeom(x, y);
+    var ph = tt * 1.5 + hash(x, y, 32) * 6.283;
+    ctx.strokeStyle = "rgba(184,228,255," + (0.05 + 0.10 * (0.5 + 0.5 * Math.sin(ph))).toFixed(3) + ")";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(g.cx - 5, g.cy + Math.sin(ph) * 1.4);
+    ctx.lineTo(g.cx + 5, g.cy + Math.sin(ph) * 1.4);
+    ctx.stroke();
+  }
+
+  /* celestial bodies, before the creatures so nothing flies in front of the sun */
+  for (i = 0; i < G.sky.length; i++) {
+    o = G.sky[i];
+    var ox = (o.x + 0.5) * CELL_W, oy = (o.y + 0.5) * CELL_H;
+    ctx.globalCompositeOperation = "lighter";
+    if (o.k === "sun") {
+      var pg = ctx.createRadialGradient(ox, oy, 0, ox, oy, 104);
+      pg.addColorStop(0,   "rgba(255,244,214,.98)");
+      pg.addColorStop(.14, "rgba(255,222,150,.62)");
+      pg.addColorStop(.46, "rgba(255,196,96,.16)");
+      pg.addColorStop(1,   "rgba(255,180,80,0)");
+      ctx.fillStyle = pg;
+      ctx.beginPath(); ctx.arc(ox, oy, 104, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = "rgba(255,250,232,1)";
+      ctx.beginPath(); ctx.arc(ox, oy, 15, 0, 6.2832); ctx.fill();
+    } else if (o.k === "moon") {
+      var mg = ctx.createRadialGradient(ox, oy, 0, ox, oy, 70);
+      mg.addColorStop(0,   "rgba(216,234,252,.66)");
+      mg.addColorStop(.42, "rgba(178,206,238,.18)");
+      mg.addColorStop(1,   "rgba(160,190,230,0)");
+      ctx.fillStyle = mg;
+      ctx.beginPath(); ctx.arc(ox, oy, 70, 0, 6.2832); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "rgba(240,248,255,.97)";
+      ctx.beginPath(); ctx.arc(ox, oy, 13, 0, 6.2832); ctx.fill();
+      /* the crescent is a shadow, not a hole. An opaque dark disc read as a
+         black dot punched through the sky, so it is pushed further out, made
+         smaller and kept faint — enough to say "moon", not "hole". */
+      ctx.fillStyle = "rgba(18,26,44,.40)";
+      ctx.beginPath(); ctx.arc(ox + 9, oy - 4.6, 9.8, 0, 6.2832); ctx.fill();
+    } else {
+      var tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(tt * 2.1 + hash(o.x, o.y, 33) * 6.283));
+      ctx.fillStyle = "rgba(228,240,255," + tw.toFixed(3) + ")";
+      ctx.beginPath(); ctx.arc(ox, oy, 2.2, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = "rgba(228,240,255," + (tw * 0.45).toFixed(3) + ")";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ox - 5.5, oy); ctx.lineTo(ox + 5.5, oy);
+      ctx.moveTo(ox, oy - 5.5); ctx.lineTo(ox, oy + 5.5);
+      ctx.stroke();
+    }
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  /* the light the world is actually standing in — this is why 第四日 changes
+     the colour of everything, which is the day's whole promise */
+  for (i = 0; i < G.sky.length; i++) {
+    o = G.sky[i];
+    if (o.k === "star") continue;
+    var lx = (o.x + 0.5) * CELL_W, ly = (o.y + 0.5) * CELL_H;
+    var lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, CW * 1.0);
+    if (o.k === "sun") {
+      lg.addColorStop(0, "rgba(255,204,124,.20)");
+      lg.addColorStop(1, "rgba(255,190,110,0)");
+    } else {
+      lg.addColorStop(0, "rgba(146,188,240,.13)");
+      lg.addColorStop(1, "rgba(140,180,235,0)");
+    }
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, 0, CW, CH);
+  }
+
+  for (i = 0; i < G.life.length; i++) drawLife(G.life[i], tt, i);
+
+  /* depth: the world sits in a frame, it does not stop at a hard edge */
+  ctx.fillStyle = VIGNETTE;
+  ctx.fillRect(0, 0, CW, CH);
+
+  /* the brush ring, only while a brush is in hand */
+  if (G.brush && mouse.in) {
+    var rr3 = brushRadius();
+    ctx.strokeStyle = "rgba(242,215,155,.55)";
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(mouse.x, mouse.y, rr3, 0, 6.2832); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(242,215,155,.09)";
+    ctx.beginPath(); ctx.arc(mouse.x, mouse.y, rr3, 0, 6.2832); ctx.fill();
+  }
+
+  /* the maker's token, during 入世. It is the only thing on screen that is not
+     part of the world — which is the entire point of the last act. */
+  if (G.mark) {
+    var mx = (G.mark.x + 0.5) * CELL_W, my = (G.mark.y + 0.5) * CELL_H;
+    var pulse = 0.5 + 0.5 * Math.sin(tt * 3.4);
+    ctx.strokeStyle = "rgba(255,255,255," + (0.35 + pulse * 0.45).toFixed(3) + ")";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(mx, my, 10 + pulse * 3, 0, 6.2832); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    ctx.beginPath(); ctx.arc(mx, my, 10 + pulse * 3, 0, 6.2832); ctx.fill();
+    /* the slot it was refused */
+    ctx.strokeStyle = "rgba(196,74,62,.9)";
+    ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    ctx.moveTo(mx - 8, my - 8); ctx.lineTo(mx + 8, my + 8);
+    ctx.moveTo(mx + 8, my - 8); ctx.lineTo(mx - 8, my + 8);
+    ctx.stroke();
+  }
+}
+
+function drawLife(o, tt, i){
+  var cx = (o.x + 0.5) * CELL_W, cy = (o.y + 0.5) * CELL_H;
+  var bob = Math.sin(tt * 1.7 + i * 1.31) * 1.4;
+  ctx.save();
+  ctx.translate(cx, cy + bob);
+  if (o.k === "fish") {
+    ctx.fillStyle = "#9ad6f2";
+    ctx.beginPath(); ctx.ellipse(0, 0, 5.4, 2.7, 0, 0, 6.2832); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-4.8, 0); ctx.lineTo(-8.6, -2.7); ctx.lineTo(-8.6, 2.7);
+    ctx.closePath(); ctx.fill();
+  } else if (o.k === "bird") {
+    ctx.strokeStyle = "#efe8d6"; ctx.lineWidth = 1.8; ctx.lineCap = "round";
+    var f = Math.sin(tt * 4.2 + i) * 2.6;
+    ctx.beginPath();
+    ctx.moveTo(-5.8, f); ctx.quadraticCurveTo(-2.1, -2.8, 0, 0);
+    ctx.quadraticCurveTo(2.1, -2.8, 5.8, f);
+    ctx.stroke();
+  } else if (o.k === "beast") {
+    ctx.fillStyle = "#d6ab74";
+    ctx.beginPath(); ctx.ellipse(0, -0.6, 4.6, 3.0, 0, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = "#d6ab74"; ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(-2.7, 1.7); ctx.lineTo(-2.7, 4.4);
+    ctx.moveTo(2.7, 1.7);  ctx.lineTo(2.7, 4.4);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(4.9, -2.5, 2.2, 0, 6.2832); ctx.fill();
+  } else {
+    /* a person: the only figure in the world with a head and shoulders, drawn
+       at the same scale as everything else */
+    ctx.fillStyle = "#fae7bc";
+    ctx.beginPath(); ctx.arc(0, -4.6, 2.2, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = "#fae7bc"; ctx.lineWidth = 1.7; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, -2.4); ctx.lineTo(0, 2.7);
+    ctx.moveTo(-3.2, -0.4); ctx.lineTo(3.2, -0.4);
+    ctx.moveTo(0, 2.7); ctx.lineTo(-2.5, 5.4);
+    ctx.moveTo(0, 2.7); ctx.lineTo(2.5, 5.4);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* what is standing in a given cell — used by the last act, where every answer
+   has to be the truth about the world the player actually built */
+function occupantAt(x, y){
+  if (!inB(x, y)) return null;
+  var i, cx, cy;
+  for (i = 0; i < G.life.length; i++) {
+    if (G.life[i].x === x && G.life[i].y === y) return G.life[i].k;
+  }
+  for (i = 0; i < G.sky.length; i++) {
+    cx = Math.floor(G.sky[i].x); cy = Math.floor(G.sky[i].y);
+    if (cx === x && cy === y) return G.sky[i].k;
+  }
+  var c = G.cell[idx(x, y)];
+  if (c === PLANT) return "plant";
+  if (c === WATER) return "water";
+  if (c === EARTH) return "earth";
+  if (c === LIGHT) return "light";
+  return null;
+}
+/* ==========================================================================
+   造世 · THE MAKER — 3/4  input, palette, the spoken line
+   ========================================================================== */
+
+var mouse = { x: -99, y: -99, down: false, in: false, last: null };
+
+/* elements, and what kind of thing each one is */
+var EL = {
+  light: { kind:"terrain", terr:LIGHT, c:"#f0d9a8", key:"el_light" },
+  water: { kind:"terrain", terr:WATER, c:"#2d6f95", key:"el_water" },
+  earth: { kind:"terrain", terr:EARTH, c:"#8a6a45", key:"el_earth" },
+  plant: { kind:"terrain", terr:PLANT, c:"#3f8a58", key:"el_plant" },
+  sun:   { kind:"sky",  c:"#ffd27a", key:"el_sun"   },
+  moon:  { kind:"sky",  c:"#cfe0ef", key:"el_moon"  },
+  star:  { kind:"sky",  c:"#e2eeff", key:"el_star"  },
+  fish:  { kind:"life", c:"#8fd0f0", key:"el_fish"  },
+  bird:  { kind:"life", c:"#eae3d2", key:"el_bird"  },
+  beast: { kind:"life", c:"#cfa470", key:"el_beast" },
+  human: { kind:"life", c:"#f6e2b4", key:"el_human" }
+};
+
+/* which elements each day offers. A day with too many tools is a toolbox,
+   not a day of creation. */
+var STAGE_EL = {
+  1: ["light"],
+  2: ["water", "earth"],
+  3: ["plant"],
+  4: ["sun", "moon", "star"],
+  5: ["fish", "bird", "beast"],
+  6: ["human"]
+};
+
+/* how much has to exist before a day is finished */
+var GOAL = {
+  1: { light: Math.round(COLS * ROWS * 0.10) },
+  2: { water: Math.round(COLS * ROWS * 0.06), earth: Math.round(COLS * ROWS * 0.08) },
+  3: { plant: Math.round(COLS * ROWS * 0.08) },
+  4: { sun: 1, moon: 1, star: 3 },
+  5: { life: 6 },
+  6: { human: 5 }
+};
+
+function brushRadius(){ return CELL_W * 2.3; }
+
+/* --------------------------------------------------------- canvas pointer */
+
+function toCanvas(e){
+  var r = cv.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (CW / r.width),
+    y: (e.clientY - r.top) * (CH / r.height)
+  };
+}
+
+function paintHere(p){
+  var e = EL[G.brush];
+  if (!e || e.kind !== "terrain") return 0;
+  return stroke(e.terr, p.x, p.y, brushRadius());
+}
+
+cv.addEventListener("pointerdown", function (ev) {
+  if (G.stage === S.OPEN || G.stage === S.END) return;
+  cv.setPointerCapture && cv.setPointerCapture(ev.pointerId);
+  var p = toCanvas(ev);
+  mouse.x = p.x; mouse.y = p.y; mouse.in = true;
+
+  if (G.stage === S.ENTER) { mouse.down = false; return; }
+
+  var e = EL[G.brush];
+  if (!e) return;
+  mouse.down = true;
+
+  if (e.kind === "terrain") {
+    paintHere(p); mouse.last = p;
+  } else {
+    placeAt(e, p);
+  }
+  ev.preventDefault();
+});
+
+cv.addEventListener("pointermove", function (ev) {
+  var p = toCanvas(ev);
+  mouse.x = p.x; mouse.y = p.y; mouse.in = true;
+
+  if (G.stage === S.ENTER) { markAt(p); return; }
+  if (!mouse.down) return;
+
+  var e = EL[G.brush];
+  if (!e) return;
+  if (e.kind === "terrain") {
+    /* interpolate between the last point and this one, or a fast drag leaves
+       a dotted line instead of a stroke */
+    var a = mouse.last || p, steps = Math.max(1, Math.ceil(Math.hypot(p.x - a.x, p.y - a.y) / (brushRadius() * 0.5)));
+    for (var i = 1; i <= steps; i++) {
+      paintHere({ x: a.x + (p.x - a.x) * i / steps, y: a.y + (p.y - a.y) * i / steps });
+    }
+    mouse.last = p;
+  }
+  ev.preventDefault();
+});
+
+function endStroke(){ mouse.down = false; mouse.last = null; checkGoal(); }
+cv.addEventListener("pointerup", endStroke);
+cv.addEventListener("pointercancel", endStroke);
+cv.addEventListener("pointerleave", function () { mouse.in = false; mouse.down = false; });
+
+/* placement — one creature or one light per tap.
+   The tap is snapped to the nearest cell that will actually accept the thing,
+   out to two cells. On a phone a cell is eleven CSS pixels wide; without the
+   snap, placing a person is a test of aim rather than a creative act. Beyond
+   two cells nothing is offered — so "a beast cannot stand in the sky" is still
+   a rule the player can feel, not a nudge that quietly does it for them. */
+var SNAP_D = [[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],
+              [2,0],[-2,0],[0,2],[0,-2],[2,1],[2,-1],[-2,1],[-2,-1],
+              [1,2],[-1,2],[1,-2],[-1,-2]];
+
+function nearestValid(kind, x, y, isLife){
+  for (var i = 0; i < SNAP_D.length; i++) {
+    var nx = x + SNAP_D[i][0], ny = y + SNAP_D[i][1];
+    if (!inB(nx, ny)) continue;
+    if (isLife) {
+      if (!mayPlaceLife(kind, nx, ny)) continue;
+      var taken = false;
+      for (var j = 0; j < G.life.length; j++) {
+        if (G.life[j].x === nx && G.life[j].y === ny) { taken = true; break; }
+      }
+      if (taken) continue;
+    } else if (!mayPlaceSky(kind, nx, ny)) {
+      continue;
+    }
+    return [nx, ny];
+  }
+  return null;
+}
+
+function placeAt(e, p){
+  var x = Math.floor(p.x / CELL_W), y = Math.floor(p.y / CELL_H);
+  if (!inB(x, y)) return;
+  var at = nearestValid(G.brush, x, y, e.kind === "life");
+  if (!at) { flashSay(e.kind === "sky" ? "sky" : "no"); return; }
+  x = at[0]; y = at[1];
+  if (e.kind === "life") {
+    G.life.push({ x: x, y: y, k: G.brush, n: "" });
+    trackFirst("life_" + G.brush);
+    afterPlace(G.brush);        /* the element id, not "life" — 第五日 has to
+                                   know whether it was a fish or a person */
+  } else {
+    G.sky.push({ x: x, y: y, k: G.brush });
+    afterPlace("sky");
+  }
+  checkGoal();
+}
+
+function markAt(p){
+  var x = Math.floor(p.x / CELL_W), y = Math.floor(p.y / CELL_H);
+  if (!inB(x, y)) return;
+  G.mark = { x: x, y: y };
+  var occ = occupantAt(x, y);
+  var label = occ ? t("occ_" + occ) : "—";
+  G.markTaken = label;
+  say('<b>' + t("you") + '</b> · ' + label);
+}
+
+/* --------------------------------------------------------------- the line */
+
+function say(html){ document.getElementById("say").innerHTML = html; }
+
+var flashT = 0;
+function flashSay(why){
+  var s = document.getElementById("say");
+  var old = s.innerHTML;
+  s.innerHTML = '<span class="dim">' +
+    (why === "sky" ? (LANG === "en" ? "Lights hang in the upper sky only." :
+                      LANG === "hant" ? "光體只能掛在上方的天空。" : "光体只能挂在上方的天空。")
+                   : (LANG === "en" ? "It cannot live there." :
+                      LANG === "hant" ? "牠不能在那裡活。" : "它不能在那里活。")) + '</span>';
+  s.style.borderColor = "var(--blood)";
+  clearTimeout(flashT);
+  flashT = setTimeout(function () { s.innerHTML = old; s.style.borderColor = ""; }, 1100);
+}
+
+/* the line, plus a bar when the day has a quota */
+function sayGoal(){
+  var g = GOAL[G.stage];
+  if (!g) { return; }
+  var rows = [], done = true, x;
+  for (var k in g) {
+    if (!g.hasOwnProperty(k)) continue;
+    var have, want = g[k];
+    if (k === "life") have = G.life.length;
+    else if (k === "sun" || k === "moon" || k === "star") have = skyCount(k);
+    else if (k === "human") have = lifeCount("human");
+    else have = count(EL[k].terr);
+    if (have < want) done = false;
+    rows.push('<b>' + (EL[k] ? t(EL[k].key) : k) + '</b> ' +
+              Math.min(have, want) + " / " + want);
+  }
+  say(t("s" + G.stage + "_say") + '<br><span class="dim">' + rows.join(" · ") + "</span>");
+}
+
+/* ------------------------------------------------------------- day strip */
+
+function renderDaybar(){
+  var bar = document.getElementById("daybar"), h = "";
+  var cur = G.stage <= S.DAY6 ? G.stage : (G.stage === S.LAW ? 6 : 7);
+  for (var i = 0; i < 8; i++) {
+    var cls = i === cur ? " on" : (i < cur ? " done" : "");
+    h += '<div class="' + cls.trim() + '" data-d="' + t("days")[i] + '">' + t("days")[i] + "</div>";
+  }
+  bar.innerHTML = h;
+}
+
+/* --------------------------------------------------------------- palette */
+
+function renderPalette(){
+  var p = document.getElementById("palette");
+  var list = STAGE_EL[G.stage];
+  if (!list) { p.innerHTML = ""; return; }   /* not a painting day — no tools,
+                                                and no stale prompt either */
+  if (!G.brush || list.indexOf(G.brush) < 0) G.brush = list[0];
+  var h = "";
+  for (var i = 0; i < list.length; i++) {
+    var id = list[i], e = EL[id], cnt = "";
+    if (id === "sun")  cnt = skyCount("sun")  + "/1";
+    if (id === "moon") cnt = skyCount("moon") + "/1";
+    if (id === "star") cnt = skyCount("star") + "/5";
+    h += '<button type="button" class="el' + (G.brush === id ? " on" : "") + '" data-el="' + id + '">' +
+         '<span class="sw" style="background:' + e.c + ';color:' + e.c + '"></span>' +
+         '<span class="n">' + t(e.key) + "</span>" +
+         (cnt ? '<span class="c">' + cnt + "</span>" : "") +
+         "</button>";
+  }
+  if (G.stage === S.DAY1) h += '<span class="hint">' + t("el_hint") + "</span>";
+  p.innerHTML = h;
+  var btns = p.querySelectorAll(".el");
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].onclick = function () { G.brush = this.getAttribute("data-el"); renderPalette(); };
+  }
+}
+
+/* --------------------------------------------------------------- overlays */
+
+var ov = document.getElementById("overlay");
+/* `mode` is "soft" when the world behind the words has to stay visible —
+   the last act puts the text at the bottom and leaves the world lit above it,
+   because the whole point of that scene is the thing you are looking at. */
+function overlay(html, mode){
+  ov.innerHTML = html;
+  ov.className = "overlay show" + (mode ? " " + mode : "");
+}
+function hideOverlay(){ ov.className = "overlay"; }
+
+function actRow(buttons){
+  var r = document.getElementById("actrow"), h = "";
+  for (var i = 0; i < buttons.length; i++) {
+    var b = buttons[i];
+    h += '<button type="button" class="btn ' + (b.cls || "") + '" data-a="' + i + '">' + b.label + "</button>";
+  }
+  r.innerHTML = h;
+  var els = r.querySelectorAll("button");
+  for (var j = 0; j < els.length; j++) {
+    els[j].onclick = buttons[j].go;
+  }
+}
+function clearActRow(){ document.getElementById("actrow").innerHTML = ""; }
+
+/* --------------------------------------------------------------- tracking */
+
+var SID = (function () {
+  try {
+    var v = sessionStorage.getItem("cw_sid");
+    if (!v) { v = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem("cw_sid", v); }
+    return v;
+  } catch (e) { return "n" + Math.random().toString(36).slice(2, 8); }
+})();
+var onceSent = {};
+function track(ev, extra){
+  if (!TRACK_ON) return;
+  var q = "?e=" + encodeURIComponent(ev) + "&s=" + SID + "&l=" + LANG;
+  if (extra) for (var k in extra) q += "&" + k + "=" + encodeURIComponent(extra[k]);
+  try { new Image().src = TRACK_URL + q + "&_=" + Date.now(); } catch (e) {}
+}
+function trackFirst(ev, extra){
+  if (onceSent[ev]) return;
+  onceSent[ev] = 1;
+  track(ev, extra);
+}
+
+/* ---------------------------------------------------------------- helpers */
+
+function mmss(ms){
+  var s = Math.max(0, Math.round(ms / 1000));
+  return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
+}
+function clean(s, max){
+  s = String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+  return s.slice(0, max || 14);
+}
+/* ==========================================================================
+   造世 · THE MAKER — 4/4a  the seven days
+   ========================================================================== */
+
+var frame = document.getElementById("frame");
+
+function setStage(n){
+  G.stage = n;
+  G.stageDone = false;
+  G.brush = null;
+  G.dirty = true;
+
+  var painting = (n >= S.DAY1 && n <= S.DAY6);
+  frame.classList.toggle("locked", !painting);
+  renderDaybar();
+  renderPalette();
+  if (!painting) say("");        /* or the last day's quota sits under the last act */
+  clearActRow();
+  hideOverlay();
+
+  if (n === S.OPEN) {
+    overlay('<div class="big">' + t("s0_big") + '</div>' +
+            '<div class="mid">' + t("s0_mid") + '</div>' +
+            '<div class="sm">' + t("s0_sm") + '</div>');
+    actRow([{ label: t("s0_btn"), go: function () { trackFirst("start"); setStage(S.DAY1); } }]);
+    return;
+  }
+
+  if (n === S.LAW) { panelLaw(); return; }
+  if (n === S.REST) { runRest(); return; }
+  if (n === S.ENTER) { runEnter(); return; }
+  if (n === S.END) { return; }
+
+  /* a day of painting: a title card, then the goal in the line below */
+  sayGoal();
+  overlay('<div class="big">' + t("s" + n + "_big") + '</div>');
+  setTimeout(function () { if (G.stage === n) hideOverlay(); }, 1700);
+  trackFirst("day" + n);
+  if (n === 4) setTimeout(function () { if (G.stage === 4) flashSay("sky"); }, 2200);
+}
+
+/* -------------------------------------------------------------- the goal */
+
+function have(k){
+  if (k === "life")  return G.life.length;
+  if (k === "human") return lifeCount("human");
+  if (k === "sun" || k === "moon" || k === "star") return skyCount(k);
+  return count(EL[k].terr);
+}
+
+function checkGoal(){
+  if (G.stage < S.DAY1 || G.stage > S.DAY6 || G.stageDone) return;
+  var g = GOAL[G.stage];
+  if (!g) return;
+  for (var k in g) if (g.hasOwnProperty(k) && have(k) < g[k]) return;
+  G.stageDone = true;
+  var n = G.stage;
+  track("done", { d: n });
+  setTimeout(function () { dayDone(n); }, 380);
+}
+
+function dayDone(n){
+  sayGoal();
+  overlay('<div class="big">' + t("s" + n + "_done") + '</div>' +
+          '<div class="mid">' + t("s" + n + "_done2") + '</div>');
+  actRow([{ label: t("next"), go: function () {
+    setStage(n === S.DAY6 ? S.LAW : n + 1);
+  } }]);
+}
+
+/* called from placeAt, with the element id that was just used */
+function afterPlace(id){
+  if (id === "fish" || id === "bird" || id === "beast") {
+    if (!G.nameOf) panelName();
+  } else if (id === "human") {
+    if (!G.name && lifeCount("human") === 3) panelAsk();
+  }
+}
+
+/* ---------------------------------------------------------------- panels */
+
+var panelEl = document.getElementById("panel");
+var panelBox = document.getElementById("panelbox");
+function openPanel(html){ panelBox.innerHTML = html; panelEl.classList.add("show"); }
+function closePanel(){ panelEl.classList.remove("show"); panelBox.innerHTML = ""; }
+
+/* --- the first creature gets a name. This is the only place in the game
+   where the player is asked to write something of their own, and it is
+   deliberately the smallest, most domestic moment in it. --- */
+function panelName(){
+  openPanel(
+    '<h3>' + t("s5_name_t") + '</h3>' +
+    '<p class="lede">' + t("s5_name_l") + '</p>' +
+    '<input type="text" id="pin" maxlength="14" autocomplete="off" spellcheck="false" placeholder="' + t("s5_name_ph") + '">' +
+    '<div class="row"><button type="button" class="btn" id="pok">' + t("s5_name_btn") + '</button></div>' +
+    '<p class="note" id="pnote"></p>'
+  );
+  var inp = document.getElementById("pin");
+  setTimeout(function () { inp.focus(); }, 140);
+
+  function ok(){
+    var v = clean(inp.value, 14);
+    if (!v) { document.getElementById("pnote").textContent = t("s5_name_ph"); inp.focus(); return; }
+    G.nameOf = v;
+    if (G.life.length) G.life[G.life.length - 1].n = v;
+    closePanel();
+    track("named");
+    overlay('<div class="big">' + tf("s5_named", { n: v }) + '</div>' +
+            '<div class="mid">' + t("s5_named2") + '</div>');
+    setTimeout(function () { if (G.stage === S.DAY5) hideOverlay(); }, 2800);
+  }
+  document.getElementById("pok").onclick = ok;
+  inp.addEventListener("keydown", function (e) { if (e.key === "Enter") ok(); });
+}
+
+/* --- the humans ask for the player's own name. They get it. The world never
+   uses it again, except once, at the very end, as the subject of a sentence
+   about a place that does not exist. --- */
+function panelAsk(){
+  openPanel(
+    '<h3>' + t("s6_ask_t") + '</h3>' +
+    '<p class="lede">' + t("s6_ask_l") + '</p>' +
+    '<input type="text" id="pin" maxlength="14" autocomplete="off" spellcheck="false" placeholder="' + t("s6_ask_ph") + '">' +
+    '<div class="row"><button type="button" class="btn" id="pok">' + t("s6_ask_btn") + '</button></div>' +
+    '<p class="note" id="pnote"></p>'
+  );
+  var inp = document.getElementById("pin");
+  setTimeout(function () { inp.focus(); }, 140);
+
+  function ok(){
+    var v = clean(inp.value, 14);
+    if (!v) { document.getElementById("pnote").textContent = t("s6_ask_ph"); inp.focus(); return; }
+    G.name = v;
+    closePanel();
+    track("creator_named");
+    overlay('<div class="mid">' + t("s6_ask_note") + '</div>');
+    setTimeout(function () { if (G.stage === S.DAY6) hideOverlay(); }, 2400);
+  }
+  document.getElementById("pok").onclick = ok;
+  inp.addEventListener("keydown", function (e) { if (e.key === "Enter") ok(); });
+}
+
+/* --- the laws. Six sentences, all of them blessings, three of them load
+   bearing. The player picks the three they like the sound of, and the world
+   will quote them back at the end. --- */
+var lawPicks = [];
+function panelLaw(){
+  lawPicks = [];
+  var laws = LAWS[LANG];
+  var h = '<h3>' + t("s7_big") + '</h3><p class="lede">' + t("s7_lede") + '</p><div class="laws">';
+  for (var i = 0; i < laws.length; i++) {
+    h += '<button type="button" class="law" data-i="' + i + '">' +
+         '<span class="idx">' + (i + 1) + '.</span>' + laws[i][0] +
+         '<span class="gloss">' + laws[i][1] + '</span></button>';
+  }
+  h += '</div><div class="row"><button type="button" class="btn" id="pok" disabled>' + t("s7_btn") + '</button>' +
+       '<span class="note" id="pnote" style="align-self:center"></span></div>';
+  openPanel(h);
+
+  var btns = panelBox.querySelectorAll(".law");
+  function refresh(){
+    document.getElementById("pnote").textContent = tf("s7_pick", { n: lawPicks.length });
+    document.getElementById("pok").disabled = lawPicks.length !== 3;
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].className = "law" + (lawPicks.indexOf(+btns[j].getAttribute("data-i")) >= 0 ? " on" : "");
+    }
+  }
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].onclick = function () {
+      var i = +this.getAttribute("data-i"), at = lawPicks.indexOf(i);
+      if (at >= 0) lawPicks.splice(at, 1);
+      else if (lawPicks.length < 3) lawPicks.push(i);
+      refresh();
+    };
+  }
+  refresh();
+
+  document.getElementById("pok").onclick = function () {
+    if (lawPicks.length !== 3) return;
+    G.laws = lawPicks.slice().sort(function (a, b) { return a - b; });
+    closePanel();
+    track("laws", { a: G.laws[0], b: G.laws[1], c: G.laws[2] });
+    overlay('<div class="big">' + t("s7_note") + '</div>');
+    setTimeout(function () { hideOverlay(); setStage(S.REST); }, 2200);
+  };
+}
+/* ==========================================================================
+   造世 · THE MAKER — 4/4b  the seventh day, and the last act
+   ========================================================================== */
+
+/* ------------------------------------------------------------ 第七日 · 安息
+   The world finishes itself. This is not a cut-scene: the frontier grows one
+   cell at a time from the edges of what the player painted, taking the terrain
+   of whatever is already next to it. So the world that ends up on screen is
+   literally the player's own world, continued — which is what makes the next
+   scene true rather than asserted.
+   ------------------------------------------------------------------------ */
+
+var restTimer = null;
+function runRest(){
+  G.brush = null;
+  renderPalette(); renderDaybar(); clearActRow();
+  overlay('<div class="big">' + t("s8_big") + '</div><div class="mid">' + t("s8_say") + '</div>');
+  setTimeout(hideOverlay, 2800);
+
+  var spawnAcc = 0;
+  restTimer = setInterval(function () {
+    var filled = restTick(9, function (x, y) {
+      /* the world also gets busier on its own — a creature appears every so
+         often on ground that can hold one */
+      spawnAcc++;
+      if (spawnAcc % 7 !== 0) return;
+      var kinds = ["fish", "bird", "beast"];
+      var k = kinds[Math.floor(hash(x, y, 55) * 3) % 3];
+      if (!mayPlaceLife(k, x, y)) return;
+      for (var i = 0; i < G.life.length; i++) if (G.life[i].x === x && G.life[i].y === y) return;
+      G.life.push({ x: x, y: y, k: k, n: "" });
+    });
+    if (filled === 0) {
+      clearInterval(restTimer); restTimer = null;
+      setTimeout(restDone, 900);
+    }
+  }, 105);
+
+  track("rest");
+}
+
+/* grow the frontier by up to `budget` cells. Returns how many were filled. */
+function restTick(budget, onFill){
+  var frontier = [], x, y, i, nx, ny, n;
+  var dx = [1, -1, 0, 0], dy = [0, 0, 1, -1];
+  for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) {
+    if (G.cell[idx(x, y)] !== VOID) continue;
+    for (i = 0; i < 4; i++) {
+      nx = x + dx[i]; ny = y + dy[i];
+      if (inB(nx, ny) && G.cell[idx(nx, ny)] !== VOID) { frontier.push([x, y]); break; }
+    }
+  }
+  if (!frontier.length) return 0;
+
+  /* deterministic order, so two players who painted the same world watch it
+     finish the same way */
+  frontier.sort(function (a, b) { return hash(a[0], a[1], 61) - hash(b[0], b[1], 61); });
+
+  var done = 0;
+  for (i = 0; i < frontier.length && done < budget; i++) {
+    x = frontier[i][0]; y = frontier[i][1];
+    if (G.cell[idx(x, y)] !== VOID) continue;
+
+    /* take the colour of the neighbourhood, with a little drift */
+    var tally = {}, best = VOID, bestN = 0;
+    for (n = 0; n < 4; n++) {
+      nx = x + dx[n]; ny = y + dy[n];
+      if (!inB(nx, ny)) continue;
+      var c = G.cell[idx(nx, ny)];
+      if (c === VOID) continue;
+      tally[c] = (tally[c] || 0) + 1;
+      if (tally[c] > bestN) { bestN = tally[c]; best = c; }
+    }
+    if (hash(x, y, 62) < 0.14) {
+      var pool = [];
+      for (var kk in tally) if (tally.hasOwnProperty(kk)) pool.push(+kk);
+      if (pool.length) best = pool[Math.floor(hash(x, y, 63) * pool.length) % pool.length];
+    }
+    if (best === VOID) best = LIGHT;
+    G.cell[idx(x, y)] = best;
+    G.tint[idx(x, y)] = hash(x, y, 7) < 0.5 ? 0 : 1;
+    G.dirty = true;
+    done++;
+    if (onFill) onFill(x, y);
+  }
+  return done;
+}
+
+function restDone(){
+  overlay('<div class="big">' + t("s8_done") + '</div><div class="mid">' + t("s8_done2") + '</div>');
+  actRow([{ label: t("s8_btn"), go: function () { setStage(S.ENTER); } }]);
+  track("rest_done", { life: G.life.length, cells: totalPainted() });
+}
+
+/* ------------------------------------------------------------ 入世 · 你伸手
+   The camera pushes in. The player is given a token and can drag it anywhere
+   in the world — and the world answers, honestly, with whoever is standing
+   there. There is no cell that says anything else.
+   ------------------------------------------------------------------------ */
+
+function runEnter(){
+  G.brush = null;
+  renderPalette(); renderDaybar(); clearActRow();
+  hideOverlay();
+
+  frame.classList.add("zoom");
+  setTimeout(function () { cv.style.transform = "scale(2.7)"; }, 40);
+
+  var cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
+  G.mark = { x: cx, y: cy };
+  markAt({ x: (cx + 0.5) * CELL_W, y: (cy + 0.5) * CELL_H });
+
+  setTimeout(function () {
+    overlay('<div class="big">' + t("s9_reach") + '</div>');
+    setTimeout(function () { if (G.stage === S.ENTER) hideOverlay(); }, 2200);
+  }, 1250);
+
+  /* the world does not wait for the player to work it out */
+  setTimeout(function () {
+    overlay('<div class="mid">' + t("s9_try") + '</div>', "soft");
+    setTimeout(function () { if (G.stage === S.ENTER) hideOverlay(); }, 2800);
+  }, 4600);
+
+  setTimeout(function () {
+    if (G.stage !== S.ENTER) return;
+    actRow([{ label: t("s9_skip"), cls: "ghost", go: finalReveal }]);
+  }, 7600);
+
+  track("enter");
+}
+
+function finalReveal(){
+  clearActRow();
+  hideOverlay();
+  setTimeout(function () {
+    overlay('<div class="big">' + t("s9_big") + '</div>' +
+            '<div class="mid">' + t("s9_mid") + '</div>', "soft");
+  }, 260);
+  setTimeout(function () {
+    actRow([
+      { label: t("s10_a"), cls: "danger", go: function () { ending("a"); } },
+      { label: t("s10_b"), cls: "ghost",  go: function () { ending("b"); } }
+    ]);
+  }, 3600);
+  track("twist");
+}
+
+/* ------------------------------------------------------------------ endings
+   Both answers are losses, and they are different losses. Destroying the world
+   buys a place in nothing; leaving it keeps a world that has moved on. Neither
+   one lets the player be in the thing they made.
+   ------------------------------------------------------------------------ */
+
+function ending(which){
+  G.stage = S.END;
+  G.ending = which;
+  clearActRow();
+  say("");                       /* the token's read-out belongs to 入世, not here */
+  track("end", { c: which, t: Math.round((Date.now() - G.t0) / 1000), life: G.life.length });
+
+  var cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2), keep = idx(cx, cy);
+
+  if (which === "a") {
+    /* everything goes back to void, except the one cell the maker is standing in */
+    var cells = [];
+    for (var i = 0; i < G.cell.length; i++) if (G.cell[i] !== VOID && i !== keep) cells.push(i);
+    cells.sort(function (a, b) {
+      return hash(a % COLS, Math.floor(a / COLS), 88) - hash(b % COLS, Math.floor(b / COLS), 88);
+    });
+    var n = 0, per = Math.max(1, Math.ceil(cells.length / 46));
+    G.life = []; G.sky = [];
+    var t2 = setInterval(function () {
+      for (var k = 0; k < per && n < cells.length; k++, n++) {
+        G.cell[cells[n]] = VOID;
+        G.tint[cells[n]] = 0;
+      }
+      G.dirty = true;
+      if (n >= cells.length) {
+        clearInterval(t2);
+        G.cell[keep] = LIGHT; G.tint[keep] = 1; G.dirty = true;
+        G.mark = { x: cx, y: cy };
+        setTimeout(function () {
+          overlay('<div class="big">' + t("s10_a_big") + '</div>' +
+                  '<div class="mid">' + t("s10_a_mid") + '</div>' +
+                  '<div class="sm">' + t("s10_a_sm") + '</div>', "soft");
+          finish();
+        }, 700);
+      }
+    }, 52);
+  } else {
+    /* the world stays exactly as it is; only the hand leaves. The zoom class
+       stays on so the pull-back is animated — removing it would drop the
+       transition and the camera would snap. */
+    setTimeout(function () { G.mark = null; }, 2000);
+    cv.style.transform = "scale(1)";
+    overlay('<div class="big">' + t("s10_b_big") + '</div>' +
+            '<div class="mid">' + t("s10_b_mid") + '</div>' +
+            '<div class="sm">' + t("s10_b_sm") + '</div>', "soft");
+    finish();
+  }
+}
+
+function finish(){
+  actRow([
+    { label: t("share"), go: shareCard },
+    { label: t("s10_again"), cls: "ghost", go: function () { location.reload(); } }
+  ]);
+  warmCard();
+  if (TRACK_ON) setTimeout(function () { track("finish"); }, 400);
+}
+
+/* ==========================================================================
+   the card
+   ========================================================================== */
+
+var CARD = { cv: null, file: null, text: "" };
+
+function lawsLine(){
+  if (!G.laws || !G.laws.length) return "";
+  var laws = LAWS[LANG], out = [];
+  for (var i = 0; i < G.laws.length; i++) out.push(laws[G.laws[i]][0]);
+  return out.join(LANG === "en" ? " " : "");
+}
+
+function cardSpec(teaser){
+  var laws = LAWS[LANG];
+  var title, body, quote, stats;
+  if (teaser || !G.ending) {
+    title = t("card_teaser_title");
+    body  = t("card_teaser_body");
+    quote = "";
+  } else {
+    title = t("s9_big") + (LANG === "en" ? " " : "") + t("s9_mid");
+    body  = t("card_body");
+    if (G.name) body += (LANG === "en" ? " " : "") + tf("card_named_as", { n: G.name });
+    quote = t("card_law") + "\u300C" + lawsLine() + "\u300D";
+  }
+  stats = [
+    { k: t("st_world"),   v: Math.round(totalPainted() / (COLS * ROWS) * 100) + "%" },
+    { k: t("st_life"),    v: String(G.life.length) },
+    { k: t("st_laws"),    v: String((G.laws || []).length) },
+    { k: t("st_time"),    v: mmss(Date.now() - G.t0) }
+  ];
+  return {
+    paper: "#f7f4ef", ink: "#191713", accent: "#a8542a", muted: "#8c8478",
+    line: "#e2dbcf", panel: "#191713", panelInk: "#f2ece2",
+    serif: '"Songti SC","Songti TC","Source Han Serif SC","Noto Serif CJK SC",Georgia,serif',
+    sans: '"Segoe UI",Helvetica,"Microsoft YaHei",sans-serif',
+    kicker: t("card_kicker"),
+    title: title, body: body, stats: stats, quote: quote,
+    footer: t("card_footer"),
+    mark: function (c, x, y, h) { TRILUMI.path(c, x, y, h, "#a8542a"); }
+  };
+}
+
+/* Pre-render. navigator.share has to be called inside the same task as the
+   tap, and canvas.toBlob is async — so the blob is made in advance and the
+   tap handler is synchronous. */
+function warmCard(){
+  try {
+    var spec = cardSpec(!!G.ending ? false : true);
+    CARD.cv = TRICARD.draw(spec);
+    CARD.text = TRICARD.text(spec);
+    CARD.cv.toBlob(function (b) {
+      try { CARD.file = new File([b], "create-world.png", { type: "image/png" }); } catch (e) {}
+    }, "image/png");
+  } catch (e) {}
+}
+
+function shareCard(){
+  var spec = cardSpec(!!G.ending ? false : true);
+  var cvs, txt;
+  try { cvs = TRICARD.draw(spec); txt = TRICARD.text(spec); }
+  catch (e) { cvs = CARD.cv; txt = CARD.text; }
+
+  track("share", { at: G.ending || "mid" });
+
+  if (CARD.file && navigator.canShare && navigator.canShare({ files: [CARD.file] })) {
+    navigator.share({ files: [CARD.file], text: txt }).catch(function () {});
+    return;
+  }
+  TRISHARE.open(cvs, txt, {
+    lang: LANG,
+    filename: "create-world.png",
+    title: t("title"), hint: t("hint"),
+    dl: t("dl"), cp: t("cp"), cl: t("cl"), ok: t("ok"), bad: t("bad")
+  });
+}
+
+/* ==========================================================================
+   language, install, boot
+   ========================================================================== */
+
+function detectLang(){
+  var q = (location.search.match(/[?&]l=(hant|hans|en)/) || [])[1];
+  if (q) return q;
+  try {
+    var s = localStorage.getItem("cw_lang");
+    if (s && L[s]) return s;
+  } catch (e) {}
+  var n = (navigator.language || "en").toLowerCase();
+  if (n.indexOf("zh") === 0) return (n.indexOf("hant") >= 0 || n.indexOf("tw") >= 0 ||
+                                    n.indexOf("hk") >= 0 || n.indexOf("mo") >= 0) ? "hant" : "hans";
+  return "en";
+}
+
+function setLang(code, first){
+  LANG = L[code] ? code : "en";
+  try { localStorage.setItem("cw_lang", LANG); } catch (e) {}
+  document.documentElement.lang = L[LANG].lang;
+  document.body.className = (LANG === "en") ? "en" : "";
+
+  document.getElementById("gtitle").textContent = t("gtitle");
+  document.getElementById("subtitle").textContent = t("subtitle");
+  document.getElementById("trishlabel").textContent = t("share");
+  document.getElementById("installbtn").textContent = t("install");
+  document.title = t("gtitle") + " · " + t("card_title");
+
+  var sw = document.getElementById("langsw").querySelectorAll("button");
+  for (var i = 0; i < sw.length; i++) {
+    sw[i].className = (sw[i].getAttribute("data-l") === LANG) ? "on" : "";
+  }
+
+  renderDaybar();
+  renderPalette();
+  if (G.stage >= S.DAY1 && G.stage <= S.DAY6) sayGoal();
+  else if (G.stage === S.OPEN) say("");
+  if (G.stage === S.LAW && panelEl.classList.contains("show")) panelLaw();
+}
+
+/* the version tag reads the service worker's own VERSION rather than a string
+   typed into the page — a hard-coded one lies the moment you forget to bump it */
+(function () {
+  if (!/^https?:/.test(location.protocol)) return;
+  fetch("sw.js", { cache: "no-store" })
+    .then(function (r) { return r.text(); })
+    .then(function (x) {
+      var m = x.match(/VERSION\s*=\s*"([^"]+)"/);
+      if (m) document.getElementById("buildtag").textContent = "build " + m[1];
+    })
+    .catch(function () {});
+})();
+
+/* ------------------------------------------------------------ render loop */
+
+var last = 0;
+function loop(now){
+  requestAnimationFrame(loop);
+  if (now - last < 33) return;         /* ~30fps; this is a painting, not a shooter */
+  last = now;
+  drawFrame(now);
+}
+
+/* ---------------------------------------------------------------- install */
+
+var deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("installbtn").hidden = false;
+});
+document.getElementById("installbtn").hidden = true;
+document.getElementById("installbtn").onclick = function () {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt = null;
+  this.hidden = true;
+};
+window.addEventListener("appinstalled", function () {
+  document.getElementById("installbtn").hidden = true;
+  track("install");
+});
+
+/* ------------------------------------------------------------------- boot */
+
+document.getElementById("trishbtn").onclick = shareCard;
+document.getElementById("langsw").onclick = function (e) {
+  var b = e.target.closest ? e.target.closest("button") : null;
+  if (b && b.getAttribute("data-l")) { setLang(b.getAttribute("data-l")); track("lang", { l: LANG }); }
+};
+document.getElementById("panel").onclick = function (e) { if (e.target === this) return; };
+
+setLang(detectLang(), true);
+renderDaybar();
+setStage(S.OPEN);
+requestAnimationFrame(loop);
+trackFirst("open");
+
+if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+
+</script>
+</body>
+</html>

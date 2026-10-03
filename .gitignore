@@ -1,0 +1,8 @@
+# test output — the screenshots are ~5 MB per run and are rebuilt on demand by
+# _build/play.js, so they are not worth carrying in git
+_build/shots/
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp

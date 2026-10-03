@@ -1,0 +1,112 @@
+<style>
+/* -------------------------------------------------------------- palette */
+.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-height:42px;align-items:center}
+.el{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 9px;border-radius:3px;
+  border:1px solid var(--line2);background:var(--panel);color:var(--ink2);
+  font-family:var(--serif);font-size:13.5px;letter-spacing:.08em;cursor:pointer;transition:.18s;
+}
+.el:hover{border-color:var(--line2);background:var(--panel2);color:var(--ink)}
+.el.on{border-color:var(--gold);color:var(--ink);background:rgba(224,183,106,.10)}
+.el .sw{width:13px;height:13px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+.el .n{white-space:nowrap}
+.el .c{font-size:11px;color:var(--ink3);letter-spacing:0}
+.el.on .c{color:var(--gold)}
+.el[disabled]{opacity:.34;cursor:not-allowed}
+.palette .hint{font-size:12.5px;color:var(--ink3);letter-spacing:.04em}
+
+/* ------------------------------------------------------- the spoken line */
+.say{
+  margin-top:12px;min-height:46px;padding:11px 15px;border-radius:3px;
+  border:1px solid var(--line);background:var(--panel);
+  font-size:15px;color:var(--ink2);line-height:1.75;transition:.3s;
+}
+.say b{color:var(--gold);font-weight:600}
+.say .dim{color:var(--ink3);font-size:13.5px}
+.say .meter{display:block;margin-top:7px;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+.say .meter i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
+
+/* ------------------------------------------------------------- foot row */
+.actrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.btn{
+  font-family:var(--serif);font-size:14.5px;letter-spacing:.1em;padding:10px 22px;border-radius:3px;
+  border:1px solid var(--gold);background:var(--gold);color:#14110a;cursor:pointer;font-weight:600;
+  transition:.18s;
+}
+.btn:hover{background:var(--gold2);border-color:var(--gold2)}
+.btn.ghost{background:transparent;color:var(--ink2);border-color:var(--line2);font-weight:400}
+.btn.ghost:hover{border-color:var(--ink3);color:var(--ink);background:var(--panel)}
+.btn[disabled]{opacity:.3;cursor:not-allowed}
+.btn.danger{background:transparent;border-color:var(--blood);color:var(--blood)}
+.btn.danger:hover{background:var(--blood);color:#fff;border-color:var(--blood)}
+
+/* --------------------------------------------------------------- panels */
+.panel{
+  position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(4,5,7,.86);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+.panel.show{opacity:1;pointer-events:auto}
+.panel .box{
+  width:100%;max-width:640px;max-height:92vh;overflow:auto;background:var(--bg2);
+  border:1px solid var(--line2);border-radius:5px;padding:26px 26px 20px;
+  box-shadow:0 30px 90px rgba(0,0,0,.8);
+}
+.panel h3{margin:0 0 6px;font-size:20px;font-weight:600;letter-spacing:.16em;color:var(--gold2)}
+body.en .panel h3{letter-spacing:.04em}
+.panel .lede{margin:0 0 16px;font-size:14.5px;color:var(--ink2);line-height:1.8}
+.panel input[type=text]{
+  width:100%;padding:13px 15px;border-radius:3px;border:1px solid var(--line2);
+  background:#05060a;color:var(--ink);font-family:var(--serif);font-size:19px;
+  letter-spacing:.08em;outline:none;transition:.18s;
+}
+.panel input[type=text]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,183,106,.10)}
+.panel .row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.panel .note{margin-top:10px;font-size:12.5px;color:var(--ink3);min-height:16px}
+
+.laws{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.law{
+  text-align:left;padding:13px 16px;border-radius:3px;border:1px solid var(--line2);
+  background:var(--panel);color:var(--ink2);font-family:var(--serif);font-size:15.5px;
+  line-height:1.7;cursor:pointer;transition:.18s;letter-spacing:.02em;
+}
+.law:hover{border-color:var(--ink3);color:var(--ink);background:var(--panel2)}
+.law.on{border-color:var(--gold);background:rgba(224,183,106,.09);color:var(--gold2)}
+.law .idx{color:var(--ink3);margin-right:9px;font-size:13px}
+.law.on .idx{color:var(--gold)}
+.law .gloss{display:block;margin-top:3px;font-size:12.5px;color:var(--ink3);letter-spacing:0}
+.law.on .gloss{color:rgba(242,215,155,.72)}
+
+/* ---------------------------------------------------------------- footer */
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);text-align:center}
+.tribrand{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  text-decoration:none;opacity:.62;transition:.25s}
+.tribrand:hover,.tribrand:focus-visible{opacity:1}
+.tribrand svg{display:block;flex:none;width:11px;height:11.7px;fill:var(--blue-l)}
+.tribrand .tbn{font-size:11px;font-weight:700;letter-spacing:.22em;color:#fff}
+.tribrand .tbu{font-size:11px;font-weight:400;letter-spacing:.02em;color:var(--ink3)}
+.tribrand .tbu::before{content:"·";margin:0 9px;color:var(--ink3)}
+#buildtag{display:block;margin-top:9px;font-size:10.5px;color:#3c3f47;letter-spacing:.1em}
+
+/* --------------------------------------------------------------- mobile */
+@media (max-width:700px){
+  header.top{gap:8px}
+  header.top h1{font-size:17px}
+  header.top .sub{display:none}
+  .langsw{margin-left:auto}
+}
+@media (max-width:430px){
+  /* the title takes the first line, so "centre" has to mean the second line */
+  header.top{display:grid;grid-template-columns:1fr;
+    align-items:center;gap:9px}
+  header.top h1{grid-column:1/-1;grid-row:1;text-align:center}
+  .trishbtn{grid-column:1/-1;grid-row:2;justify-self:center;margin:0}
+  .langsw{grid-column:1/-1;grid-row:3;justify-self:end;margin:0}
+  .daybar div{font-size:0;padding:9px 2px}
+  .daybar div::after{content:attr(data-d);font-size:11px}
+  .el{padding:7px 11px 7px 8px;font-size:12.5px}
+  .wrap{padding:14px 11px 40px}
+  .panel .box{padding:20px 17px 15px}
+  .overlay{padding:16px}
+}
+</style>

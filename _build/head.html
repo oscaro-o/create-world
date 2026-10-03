@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>造世 · 你親手創造世界，可這世界沒有你位置</title>
+<meta name="description" content="An interactive creation game in seven days. You build a world, name its creatures, give it laws — and then look for your own place in it. 繁體 · 简体 · English.">
+<meta name="theme-color" content="#08090c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="造世">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+/* ==========================================================================
+   造世 · THE MAKER
+   --------------------------------------------------------------------------
+   A dark page, on purpose. Every other game in the family sits on warm paper;
+   this one starts in a void and the world is the only lit thing on screen.
+   The light in the middle of the page is the point — so the chrome around it
+   has to get out of the way and stay nearly black.
+
+   The brand mark is not translated and not recoloured as a system: the badge
+   keeps its blue, the wordmark goes white because #004AAD on #08090c is a
+   smudge. Geometry is untouched — see tribrand.js.
+   ========================================================================== */
+:root{
+  --bg:#08090c; --bg2:#0d0f14; --panel:#11141a; --panel2:#161a22;
+  --line:#232833; --line2:#313846;
+  --ink:#e9e7e1; --ink2:#a5a29a; --ink3:#6c6a64;
+  --gold:#e0b76a; --gold2:#f2d79b;
+  --blue:#004AAD; --blue-l:#5b9bff;
+  --water:#2a6d94; --earth:#8a6a45; --plant:#3f8a58; --blood:#b8433a;
+  --serif:"Songti SC","Songti TC","Source Han Serif SC","Source Han Serif TC",
+          "Noto Serif CJK SC","Noto Serif CJK TC","SimSun","PMingLiU","STSong",
+          Georgia,"Times New Roman",serif;
+  --sans:"Segoe UI","Helvetica Neue",Helvetica,"Microsoft YaHei","PingFang SC",
+         "Hiragino Sans GB",Arial,system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--serif);
+  font-size:16px; line-height:1.85; letter-spacing:.01em; min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 50% 34%, rgba(224,183,106,.055), transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(0,74,173,.10), transparent 70%);
+}
+body.en{letter-spacing:0;line-height:1.7}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 56px}
+
+/* ---------------------------------------------------------------- header */
+header.top{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);padding-bottom:11px;margin-bottom:16px;
+}
+header.top h1{font-size:19px;margin:0;font-weight:600;letter-spacing:.22em;color:var(--ink)}
+body.en header.top h1{letter-spacing:.14em}
+header.top .sub{color:var(--ink3);font-size:12.5px;letter-spacing:.06em}
+header.top .spacer{display:none}
+.langsw{display:inline-flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+.langsw button{font-family:var(--serif);font-size:12px;letter-spacing:.1em;background:transparent;
+  border:none;border-right:1px solid var(--line2);color:var(--ink3);padding:4px 11px;
+  cursor:pointer;transition:.18s;line-height:1.5}
+.langsw button:last-child{border-right:none}
+.langsw button:hover{color:var(--gold)}
+.langsw button.on{background:var(--gold);color:#14110a}
+/* the share button lives in the header, centred, visible from the first paint.
+   It used to be hidden until the player finished, which meant it was not there. */
+.trishbtn{
+  display:inline-flex;align-items:center;gap:7px;margin-left:auto;margin-right:auto;
+  padding:5px 14px;border-radius:3px;border:1px solid var(--line2);background:transparent;
+  color:var(--ink2);font-family:var(--serif);font-size:12.5px;letter-spacing:.1em;
+  cursor:pointer;transition:.18s;white-space:nowrap;
+}
+.trishbtn:hover,.trishbtn:focus-visible{border-color:var(--blue-l);color:var(--blue-l)}
+.trishbtn svg{display:block;flex:none;width:13px;height:13px;fill:currentColor}
+.installbtn{
+  padding:5px 12px;border-radius:3px;border:1px solid var(--line2);background:transparent;
+  color:var(--ink3);font-family:var(--serif);font-size:12.5px;letter-spacing:.1em;cursor:pointer;
+}
+.installbtn[hidden]{display:none}
+
+/* ------------------------------------------------------------- day strip */
+.daybar{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.daybar div{
+  flex:1;padding:6px 4px;font-size:11px;letter-spacing:.06em;color:var(--ink3);
+  text-align:center;background:var(--panel);border-right:1px solid var(--line);
+  transition:.35s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.daybar div:last-child{border-right:none}
+.daybar div.on{background:var(--gold);color:#14110a;font-weight:600}
+.daybar div.done{color:var(--ink2);background:var(--panel2)}
+
+/* ---------------------------------------------------------------- frame */
+.frame{
+  position:relative;border:1px solid var(--line2);border-radius:4px;overflow:hidden;
+  background:#000;line-height:0;
+  box-shadow:0 0 0 1px rgba(224,183,106,.05), 0 18px 60px rgba(0,0,0,.65),
+             inset 0 0 90px rgba(0,0,0,.5);
+}
+.frame.zoom canvas{transition:transform 1.15s cubic-bezier(.5,0,.2,1)}
+#cv{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.frame.locked #cv{cursor:default}
+
+/* text laid over the world — the narration never leaves the frame */
+.overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;padding:26px;text-align:center;pointer-events:none;
+  background:radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0,0,0,.72), rgba(0,0,0,.42));
+  opacity:0;transition:opacity .7s ease;line-height:1.9;
+}
+.overlay.show{opacity:1}
+.overlay .big{font-size:clamp(19px,3.4vw,30px);font-weight:600;letter-spacing:.14em;color:var(--gold2);
+  text-shadow:0 2px 24px rgba(0,0,0,.9)}
+body.en .overlay .big{letter-spacing:.03em}
+.overlay .mid{font-size:clamp(14px,2vw,17px);color:var(--ink);max-width:32em;
+  text-shadow:0 2px 18px rgba(0,0,0,.95)}
+.overlay .sm{font-size:13px;color:var(--ink3);max-width:34em}
+.overlay .hl{color:var(--gold);font-weight:600}
+.overlay .quote{font-size:clamp(15px,2.2vw,19px);color:var(--gold2);letter-spacing:.08em}
+/* the last act: the world stays lit, the words sit under it. The scene only
+   works if you can see the thing you are not allowed into. */
+.overlay.soft{
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.16) 42%,
+             rgba(0,0,0,.80) 78%,rgba(0,0,0,.92) 100%);
+  justify-content:flex-end;padding-bottom:clamp(20px,4vw,42px);
+}
+.overlay.soft .big{font-size:clamp(20px,3.8vw,34px)}
+</style>

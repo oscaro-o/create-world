@@ -1,0 +1,43 @@
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="gtitle">造世</h1>
+    <span class="sub" id="subtitle"></span>
+    <button class="trishbtn" id="trishbtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 16.1a3 3 0 0 0-1.9.7l-6-3.5a3 3 0 0 0 0-2.6l6-3.5a3 3 0 1 0-1-2.2 3 3 0 0 0 .1.7l-6 3.5a3 3 0 1 0 0 4.6l6 3.5a3 3 0 1 0 2.8-1.2z"/></svg>
+      <span id="trishlabel"></span>
+    </button>
+    <span class="langsw" id="langsw">
+      <button type="button" data-l="hant">繁</button>
+      <button type="button" data-l="hans">简</button>
+      <button type="button" data-l="en">EN</button>
+    </span>
+    <button type="button" class="installbtn" id="installbtn" hidden></button>
+  </header>
+
+  <div class="daybar" id="daybar"></div>
+
+  <div class="frame" id="frame">
+    <canvas id="cv" width="880" height="528"></canvas>
+    <div class="overlay" id="overlay"></div>
+  </div>
+
+  <div class="palette" id="palette"></div>
+  <div class="say" id="say"></div>
+  <div class="actrow" id="actrow"></div>
+
+  <footer class="foot">
+    <a class="tribrand" href="https://academy.trilumi.xyz/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 100 106" aria-hidden="true" focusable="false"><polygon points="57,0 68.5,21 40,76 18,76"></polygon><polygon points="9,80 63,80 73,98 0,98"></polygon><polygon points="66,33 55,55 79,106 100,106"></polygon></svg>
+      <span class="tbn">TRILUMI</span>
+      <span class="tbu">academy.trilumi.xyz</span>
+    </a>
+    <span id="buildtag"></span>
+  </footer>
+</div>
+
+<div class="panel" id="panel"><div class="box" id="panelbox"></div></div>
+
+<script>
+"use strict";
